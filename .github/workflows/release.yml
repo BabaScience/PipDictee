@@ -11,7 +11,7 @@ jobs:
   macos:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build (ad hoc signature; see the release notes about Gatekeeper)
         run: ./macos/build.sh
       - name: Clean-up cases
@@ -25,7 +25,7 @@ jobs:
     runs-on: windows-latest
     defaults: { run: { working-directory: windows } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo test --locked
       - run: cargo build --release --locked
       - name: Zip
