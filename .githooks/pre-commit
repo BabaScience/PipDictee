@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuses a commit that contains secrets or personal data files. Enable with: git config core.hooksPath .githooks
+set -e
+blocked=$(git diff --cached --name-only --diff-filter=ACMR | grep -Ei '(^|/)(history|historique|dictionary|dictionnaire|settings)\.json$|\.(log|bin|wav|sqlite|p12|pfx|key|pem)$|(^|/)signing\.local$|(^|/)\.env' || true)
+if [ -n "$blocked" ]; then
+  echo "pre-commit: these files look like personal data or secrets and must not be committed:" >&2
+  echo "$blocked" | sed 's/^/  /' >&2
+  exit 1
+fi
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+else
+  echo "pre-commit: gitleaks not installed, secret scan skipped (brew install gitleaks / winget install gitleaks)" >&2
+fi

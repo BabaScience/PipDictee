@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>Pip Dictée</string>
+<key>CFBundleDisplayName</key><string>Pip Dictée</string>
+<key>CFBundleIdentifier</key><string>fr.pip.dictee</string>
+<key>CFBundleExecutable</key><string>PipDictee</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>CFBundleShortVersionString</key><string>2.1</string>
+<key>CFBundleVersion</key><string>3</string>
+<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>LSUIElement</key><true/>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>fr</string><string>de</string><string>it</string><string>es</string><string>pt</string></array>
+<key>NSMicrophoneUsageDescription</key><string>Pip Dictée listens to your voice while you hold the shortcut and transcribes it on this Mac. Nothing is sent to the internet.</string>
+</dict></plist>

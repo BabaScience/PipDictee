@@ -1,0 +1,192 @@
+# Pip Dictée — files that must never be committed.
+# Grouped by reason. The pre-commit hook (.githooks/pre-commit) and CI also refuse personal data and secrets, even
+# if a rule here is missed. Personal tools are covered too, so contributors don't have to set anything up.
+
+# --- Personal data (it lives in the user's data folder, but never let a copy slip in) ---
+history.json
+historique.json
+dictionary.json
+dictionnaire.json
+settings.json
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.db
+# Recordings
+*.wav
+*.m4a
+*.caf
+*.aiff
+*.mp3
+*.flac
+*.ogg
+
+# --- Speech models (1.6 GB; downloaded at setup, checked with SHA-256) ---
+models/
+*.bin
+*.gguf
+*.ggml
+*.onnx
+*.safetensors
+*.pt
+*.part
+
+# --- Secrets, keys and local config ---
+.env
+.env.*
+!.env.example
+*.local
+signing.local
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.key
+*.pem
+*.der
+*.keystore
+*.jks
+*.keychain
+*.keychain-db
+*.mobileprovision
+*.provisionprofile
+*.snk
+id_rsa*
+id_ed25519*
+.netrc
+credentials.json
+secrets.json
+
+# --- Build output ---
+build/
+macos/build/
+windows/target/
+**/target/
+dist/
+out/
+*.app
+*.exe
+*.dll
+*.pdb
+*.obj
+*.lib
+*.exp
+*.ilk
+*.res
+*.zip
+*.dmg
+*.pkg
+*.msi
+*.msix
+*.appx
+*.dSYM/
+*.dSYM.zip
+*.iconset/
+**/*.rs.bk
+
+# --- Xcode / Swift ---
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+.swiftpm/
+.build/
+Packages/
+*.hmap
+*.ipa
+
+# --- Visual Studio / Windows tooling ---
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+
+# --- Editors and IDEs ---
+.vscode/
+.vscode-test/
+.idea/
+*.iml
+.fleet/
+.zed/
+.nova/
+.history/
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+# Vim / Emacs
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+Session.vim
+.netrwhist
+
+# --- AI coding assistants (local state, not project config) ---
+.claude/
+.cursor/
+.windsurf/
+.continue/
+.aider*
+.codeium/
+
+# --- Python (scripts/) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node (in case of tooling) ---
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Logs, temporary and leftover files ---
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.crdownload
+coverage/
+*.profraw
+*.profdata
+lcov.info
+
+# --- Operating systems ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# --- Old drafts kept outside the project history ---
+pip-original-main.swift.txt

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pip Dictée in context</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&amp;family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B8361F}a:hover{color:#8F2C1B}
+.drift1{animation:drift 15s ease-in-out infinite}
+.drift2{animation:drift 19s ease-in-out infinite reverse}
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-30px)}}
+.ring{animation:ring 2.1s ease-out infinite;transform-box:view-box;transform-origin:100px 112px}
+.r2{animation-delay:.7s}
+@keyframes ring{0%{transform:scale(.8);opacity:.75}100%{transform:scale(1.55);opacity:0}}
+.lean{animation:lean 2.4s ease-in-out infinite;transform-box:view-box;transform-origin:100px 172px}
+@keyframes lean{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(-2deg) scale(1.03)}}
+.wv{animation:wv .9s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+.w2{animation-delay:.12s}.w3{animation-delay:.24s}.w4{animation-delay:.36s}.w5{animation-delay:.48s}.w6{animation-delay:.6s}.w7{animation-delay:.72s}
+@keyframes wv{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+.caret{animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.rise{animation:rise .7s cubic-bezier(.2,.9,.2,1) both}
+@keyframes rise{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #F2EEE9; font-family: Nunito, -apple-system, system-ui, sans-serif; color: #17142A">
+
+  <div class="drift1" style="position: absolute; left: -120px; top: -140px; width: 640px; height: 640px; border-radius: 50%; background: #FFB59C; filter: blur(100px); opacity: .8"></div>
+  <div class="drift2" style="position: absolute; left: 860px; top: -120px; width: 700px; height: 700px; border-radius: 50%; background: #9FD3FF; filter: blur(110px); opacity: .7"></div>
+  <div class="drift1" style="position: absolute; left: 380px; top: 540px; width: 620px; height: 620px; border-radius: 50%; background: #A6EFD2; filter: blur(110px); opacity: .65"></div>
+  <div class="drift2" style="position: absolute; left: 1100px; top: 560px; width: 420px; height: 420px; border-radius: 50%; background: #CBB8FF; filter: blur(100px); opacity: .7"></div>
+
+  <div style="position: absolute; left: 0; top: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 18px; padding: 0 20px; background: rgba(255,255,255,0.45); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); border-bottom: 1px solid rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; color: #2A2640">
+    <span>Mail</span><span style="font-weight: 600">File</span><span style="font-weight: 600">Edit</span><span style="font-weight: 600">View</span><span style="font-weight: 600">Message</span>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 14px">
+      <span style="display: flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 6px; background: rgba(255,106,77,0.18)">
+        <svg viewBox="20 40 160 145" width="18" height="16" role="img" aria-label="Pip Dictée is listening">
+          <path d="M100 52 C150 52 172 84 172 118 C172 152 142 170 100 170 C58 170 28 152 28 118 C28 84 50 52 100 52 Z" fill="#FF6A4D"></path>
+          <ellipse cx="80" cy="110" rx="12" ry="17" fill="#17142A"></ellipse><ellipse cx="120" cy="110" rx="12" ry="17" fill="#17142A"></ellipse>
+        </svg>
+        <svg viewBox="0 0 10 16" width="6" height="12" aria-hidden="true"><path d="M2 3 Q7 8 2 13" fill="none" stroke="#C2412A" stroke-width="2" stroke-linecap="round"></path></svg>
+      </span>
+      <span>Fri 13 Nov 10:24</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 250px; top: 92px; width: 860px; height: 560px; border-radius: 16px; background: rgba(255,255,255,0.82); box-shadow: 0 30px 80px rgba(60,40,90,0.16); border: 1px solid rgba(255,255,255,0.9); overflow: hidden">
+    <div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid rgba(23,20,42,0.07)">
+      <span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+      <span style="margin-left: 16px; font-size: 13.5px; font-weight: 700; color: #3D3852">Thursday's review</span>
+    </div>
+    <div style="padding: 10px 28px; display: flex; flex-direction: column">
+      <div style="display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(23,20,42,0.07); font-size: 14px"><span style="color: #5C5770; width: 64px">To:</span><span style="font-weight: 600">Sarah Lin</span></div>
+      <div style="display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(23,20,42,0.07); font-size: 14px"><span style="color: #5C5770; width: 64px">Subject:</span><span style="font-weight: 600">Thursday's review</span></div>
+      <div style="padding-top: 22px; font-size: 16px; line-height: 1.65; display: flex; flex-direction: column; gap: 14px">
+        <span>Hi Sarah,</span>
+        <span>Thanks for the notes on the intro. I agree the first ten seconds drag, so I've cut the logo animation and moved the hook up front.</span>
+        <span>I'll send you the new version tonight<span class="caret" style="color: #FF6A4D; font-weight: 700">|</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="rise" style="position: absolute; left: 1150px; top: 140px; width: 250px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: Fredoka, Nunito, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px; color: #B8361F">YOU'RE HOLDING</span>
+    <div style="display: flex; gap: 10px">
+      <span style="width: 74px; height: 64px; border-radius: 12px; background: #FFFFFF; box-shadow: inset 0 -3px 0 rgba(23,20,42,0.12), 0 2px 0 rgba(23,20,42,0.06); border: 1px solid rgba(23,20,42,0.1); display: flex; flex-direction: column; justify-content: space-between; padding: 8px 10px; box-sizing: border-box; transform: translateY(2px)"><span style="font-size: 18px; font-weight: 700; align-self: flex-end">⌃</span><span style="font-size: 11px; font-weight: 700; color: #5C5770">control</span></span>
+      <span style="width: 74px; height: 64px; border-radius: 12px; background: #FFFFFF; box-shadow: inset 0 -3px 0 rgba(23,20,42,0.12), 0 2px 0 rgba(23,20,42,0.06); border: 1px solid rgba(23,20,42,0.1); display: flex; flex-direction: column; justify-content: space-between; padding: 8px 10px; box-sizing: border-box; transform: translateY(2px)"><span style="font-size: 18px; font-weight: 700; align-self: flex-end">⌥</span><span style="font-size: 11px; font-weight: 700; color: #5C5770">option</span></span>
+    </div>
+    <span style="font-size: 14px; line-height: 1.45; color: #3D3852">and saying: <em>“…and the subtitles by Monday, new paragraph, thanks again”</em></span>
+  </div>
+
+  <div style="position: absolute; left: 560px; top: 708px; width: 320px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+    <div style="position: relative; width: 150px; height: 120px">
+      <svg viewBox="0 0 200 200" width="150" height="150" style="position: absolute; left: 0; top: -14px" role="img" aria-label="Pip leaning in to listen">
+        <defs><linearGradient id="m-pip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFA184"></stop><stop offset="1" stop-color="#FF6A4D"></stop></linearGradient></defs>
+        <circle class="ring" cx="100" cy="112" r="68" fill="none" stroke="#FF6A4D" stroke-width="3"></circle>
+        <circle class="ring r2" cx="100" cy="112" r="68" fill="none" stroke="#FF6A4D" stroke-width="3"></circle>
+        <g class="lean">
+          <path d="M100 52 C150 52 172 84 172 118 C172 152 142 170 100 170 C58 170 28 152 28 118 C28 84 50 52 100 52 Z" fill="url(#m-pip)"></path>
+          <ellipse cx="72" cy="80" rx="18" ry="9" fill="#FFFFFF" opacity=".4" transform="rotate(-20 72 80)"></ellipse>
+          <ellipse cx="80" cy="110" rx="9.5" ry="14" fill="#17142A"></ellipse><ellipse cx="120" cy="110" rx="9.5" ry="14" fill="#17142A"></ellipse>
+          <circle cx="83.5" cy="104" r="3.6" fill="#FFFFFF"></circle><circle cx="123.5" cy="104" r="3.6" fill="#FFFFFF"></circle>
+          <ellipse cx="62" cy="130" rx="9" ry="5" fill="#E8365D" opacity=".3"></ellipse><ellipse cx="138" cy="130" rx="9" ry="5" fill="#E8365D" opacity=".3"></ellipse>
+          <ellipse cx="100" cy="137" rx="5" ry="4.5" fill="#17142A"></ellipse>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 540px; top: 818px; width: 360px; height: 58px; box-sizing: border-box; padding: 0 18px 0 8px; border-radius: 29px; background: rgba(23,20,42,0.86); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 18px 40px rgba(23,20,42,0.35); display: flex; align-items: center; gap: 12px; color: #FFFFFF">
+    <svg viewBox="20 40 160 145" width="44" height="40" role="img" aria-label="Pip listening">
+      <path d="M100 52 C150 52 172 84 172 118 C172 152 142 170 100 170 C58 170 28 152 28 118 C28 84 50 52 100 52 Z" fill="#FF7A5C"></path>
+      <ellipse cx="80" cy="108" rx="11" ry="15" fill="#17142A"></ellipse><ellipse cx="120" cy="108" rx="11" ry="15" fill="#17142A"></ellipse>
+      <ellipse cx="100" cy="140" rx="6" ry="5" fill="#17142A"></ellipse>
+    </svg>
+    <div style="display: flex; align-items: center; gap: 4px; height: 28px">
+      <span class="wv" style="width: 4px; height: 10px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w2" style="width: 4px; height: 20px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w3" style="width: 4px; height: 14px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w4" style="width: 4px; height: 26px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w5" style="width: 4px; height: 18px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w6" style="width: 4px; height: 24px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w7" style="width: 4px; height: 12px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w3" style="width: 4px; height: 22px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w5" style="width: 4px; height: 15px; border-radius: 2px; background: #FF8A6E"></span>
+      <span class="wv w2" style="width: 4px; height: 9px; border-radius: 2px; background: #FF8A6E"></span>
+    </div>
+    <span style="font-family: Fredoka, Nunito, sans-serif; font-size: 15px; font-weight: 600">Listening</span>
+    <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.75); font-variant-numeric: tabular-nums">0:07</span>
+  </div>
+
+  <div style="position: absolute; left: 920px; top: 828px; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.9); font-size: 13px; font-weight: 700; color: #3D3852">
+    Release to type · Space for hands-free · Esc to cancel
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+[
+ {
+  "input": " bonjour tout le monde",
+  "expected": "Bonjour tout le monde"
+ },
+ {
+  "input": "je pense, euh, que c'est bien.",
+  "expected": "Je pense que c'est bien."
+ },
+ {
+  "input": "Euh je sais pas",
+  "expected": "Je sais pas"
+ },
+ {
+  "input": "So, um, I think we should go.",
+  "expected": "So, I think we should go."
+ },
+ {
+  "input": "Ich gehe um acht Uhr.",
+  "expected": "Ich gehe um acht Uhr."
+ },
+ {
+  "input": "[BLANK_AUDIO]",
+  "expected": ""
+ },
+ {
+  "input": "Merci d'avoir regardé.",
+  "expected": ""
+ },
+ {
+  "input": "Thank you.",
+  "expected": ""
+ },
+ {
+  "input": "(musique) bonjour",
+  "expected": "Bonjour"
+ },
+ {
+  "input": "première ligne nouvelle ligne deuxième ligne",
+  "expected": "Première ligne\nDeuxième ligne"
+ },
+ {
+  "input": "intro nouveau paragraphe suite du texte",
+  "expected": "Intro\n\nSuite du texte"
+ },
+ {
+  "input": "hello ,  world .",
+  "expected": "Hello, world."
+ },
+ {
+  "input": "j'utilise type script tous les jours",
+  "dictionary": {
+   "words": [],
+   "replacements": {
+    "type script": "TypeScript"
+   },
+   "snippets": {}
+  },
+  "expected": "J'utilise TypeScript tous les jours"
+ },
+ {
+  "input": "mon email",
+  "dictionary": {
+   "words": [],
+   "replacements": {},
+   "snippets": {
+    "mon email": "me@example.com"
+   }
+  },
+  "expected": "me@example.com"
+ },
+ {
+  "input": "envoie mon email stp",
+  "dictionary": {
+   "words": [],
+   "replacements": {},
+   "snippets": {
+    "mon email": "me@example.com"
+   }
+  },
+  "expected": "Envoie me@example.com stp"
+ },
+ {
+  "input": "hmm, ok.",
+  "expected": "Ok."
+ },
+ {
+  "input": "a capo ciao",
+  "expected": "Ciao"
+ },
+ {
+  "input": "je code en java script",
+  "dictionary": {
+   "mots": [],
+   "remplacements": {
+    "java script": "JavaScript"
+   },
+   "snippets": {}
+  },
+  "expected": "Je code en JavaScript",
+  "note": "pre-2.1 French keys must still be read"
+ },
+ {
+  "input": "eh, creo que deberíamos esperar.",
+  "expected": "Creo que deberíamos esperar.",
+  "note": "Spanish hesitation at the start"
+ },
+ {
+  "input": "primera idea nueva línea segunda idea",
+  "expected": "Primera idea\nSegunda idea"
+ },
+ {
+  "input": "introducción nuevo párrafo el resto",
+  "expected": "Introducción\n\nEl resto"
+ },
+ {
+  "input": "¡Gracias por ver!",
+  "expected": "",
+  "note": "Whisper hallucination on silence"
+ },
+ {
+  "input": "ãh, eu acho que sim",
+  "expected": "Eu acho que sim"
+ },
+ {
+  "input": "primeira frase nova linha segunda frase",
+  "expected": "Primeira frase\nSegunda frase"
+ },
+ {
+  "input": "Obrigado por assistir.",
+  "expected": ""
+ },
+ {
+  "input": "eh bien, on commence",
+  "expected": "Eh bien, on commence",
+  "note": "French 'eh bien' must survive the Spanish 'eh' rule"
+ },
+ {
+  "input": "Ich gehe heute um acht Uhr nach Hause",
+  "expected": "Ich gehe heute um acht Uhr nach Hause"
+ }
+]

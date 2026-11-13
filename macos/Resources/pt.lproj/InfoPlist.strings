@@ -1,0 +1,2 @@
+/* The microphone permission message macOS shows. */
+"NSMicrophoneUsageDescription" = "O Pip Dictée ouve sua voz enquanto você segura o atalho e a transcreve neste Mac. Nada é enviado para a internet.";

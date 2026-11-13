@@ -1,0 +1,30 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-13T00:50:00Z"},
+  "title": "Pip Dictée — UI design",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "In context — macOS, while you talk"},
+    "Flow.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "How it works"},
+    "Pill-States.dc.html": {"x": 0, "y": 1280, "w": 1440, "h": 900, "title": "The pill — Pip's moods"},
+    "Brand.dc.html": {"x": 1520, "y": 1280, "w": 1440, "h": 900, "title": "Identity — icon, glyphs, colour, type"},
+    "Menu.dc.html": {"x": 0, "y": 2560, "w": 1100, "h": 760, "title": "Menu-bar panel"},
+    "Settings.dc.html": {"x": 1180, "y": 2560, "w": 1100, "h": 760, "title": "Settings — Dictionary"},
+    "Privacy.dc.html": {"x": 2360, "y": 2560, "w": 1100, "h": 760, "title": "Settings — Privacy"},
+    "Onboarding.dc.html": {"x": 0, "y": 3700, "w": 2160, "h": 760, "title": "First launch — one thing per card"},
+    "Windows.dc.html": {"x": 2240, "y": 3700, "w": 1440, "h": 900, "title": "Windows 11 — same Pip, Ctrl + Win"}
+  },
+  "order": ["Main.dc.html", "Flow.dc.html", "Pill-States.dc.html", "Brand.dc.html", "Menu.dc.html", "Settings.dc.html", "Privacy.dc.html", "Onboarding.dc.html", "Windows.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Pip Dictée — Pip's ears", "kind": "title1", "maxW": 2960},
+    "s1": {"x": 3040, "y": 0, "w": 420, "size": "m", "fill": "orange", "text": "L'idée : Pip Dictée, ce sont les oreilles de Pip.\n\nMême personnage corail, même palette (corail, encre, lilas), mêmes polices (Fredoka pour les titres, Nunito pour le texte).\n\nChaque état de l'app = une humeur de Pip : il se penche pour écouter, regarde en l'air quand il réfléchit, sourit quand c'est collé, avoue honnêtement quand il n'a rien entendu.\n\nLa pilule en bas de l'écran reprend la « dock pill » sombre de Pip."},
+    "t2": {"x": 0, "y": 1000, "text": "The pill and the identity", "kind": "title1", "maxW": 2960},
+    "s2": {"x": 3040, "y": 1280, "w": 420, "size": "m", "fill": "blue", "text": "La pilule est la seule interface que tu vois en dictant. Elle doit dire en un coup d'œil : j'écoute, je réfléchis, c'est fait, ou j'ai besoin de toi.\n\nAmbre = une vraie décision à prendre (comme dans Pip). Vert menthe = c'est collé. Corail = j'écoute.\n\nAvec « Réduire les animations » activé, chaque humeur devient une pose fixe."},
+    "t3": {"x": 0, "y": 2280, "text": "Menu, settings and privacy", "kind": "title1", "maxW": 3460},
+    "s3": {"x": 3540, "y": 2560, "w": 420, "size": "m", "fill": "green", "text": "Aujourd'hui, l'app n'a qu'un menu texte et le dictionnaire s'édite en JSON.\n\nProposition :\n• un panneau dans la barre des menus (NSPopover + SwiftUI) avec les dernières dictées et les réglages rapides ;\n• une vraie fenêtre de réglages : dictionnaire éditable, historique, confidentialité.\n\nL'onglet Confidentialité montre ce que l'app fait déjà (audio effacé, rien n'est envoyé, contrôle externe désactivé)."},
+    "t4": {"x": 0, "y": 3420, "text": "First launch and Windows", "kind": "title1", "maxW": 3680},
+    "s4": {"x": 3760, "y": 3700, "w": 420, "size": "m", "fill": "purple", "text": "Premier lancement : comme l'onboarding de Pip, une seule chose par carte, et Pip vérifie que ça marche avant de passer à la suivante (il t'entend, la permission est active, le modèle est vérifié, ta première dictée a marché).\n\nWindows : même pilule, même panneau, raccourci Ctrl + Win, et l'icône dans la zone de notification."}
+  },
+  "designSystems": []
+}

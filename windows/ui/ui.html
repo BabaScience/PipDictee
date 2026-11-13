@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Pip Dictée for Windows: every window's UI (pill, panel, settings, setup), shown in WebView2.
+     Built into the .exe; nothing is loaded from the network. Text from the user (dictations, dictionary) is only
+     ever set with textContent, never as HTML. Open it in a browser (ui.html#gallery&lang=fr) to see every screen
+     with sample data. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pip Dictée</title>
+<style>
+:root {
+  --coral: #FF6A4D; --coral-light: #FFA184; --coral-soft: #FF8A6E; --coral-text: #B8361F;
+  --ink: #17142A; --ink-soft: #3D3852; --ink-muted: #4A4560; --mist: #F5F2FC;
+  --mint: #3DD6A0; --mint-text: #1F7A57; --sun: #FFC845; --sun-text: #7A5400; --line: rgba(23,20,42,0.09);
+  --title: "Fredoka", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --text: "Nunito", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--text); color: var(--ink); background: transparent; -webkit-user-select: none; user-select: none; overflow: hidden; }
+body.page { background: #fff; }
+body.gallery { background: #E9E4F2; overflow: auto; }
+input, textarea, select, button { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--coral-text); outline-offset: 2px; }
+h1, h2 { font-family: var(--title); font-weight: 600; margin: 0; }
+.muted { color: var(--ink-muted); }
+.soft { color: var(--ink-soft); }
+.row { display: flex; align-items: center; gap: 10px; }
+.col { display: flex; flex-direction: column; }
+.grow { flex: 1; min-width: 0; }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Buttons and controls */
+.btn { border: 0; border-radius: 12px; padding: 9px 14px; font-weight: 700; font-size: 13.5px; background: var(--coral); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn.secondary { background: #fff; border: 1px solid var(--line); }
+.btn.quiet { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); }
+.btn.amber { background: var(--sun); }
+.btn.fill { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+.link { border: 0; background: none; padding: 0; font-weight: 700; font-size: 13px; color: var(--coral-text); }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 11px; border: 0; background: #D6D1E0; flex-shrink: 0; padding: 0; transition: background .2s; }
+.switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 9px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15); transition: left .2s; }
+.switch[aria-checked="true"] { background: var(--coral); }
+.switch[aria-checked="true"]::after { left: 18px; }
+select { border: 1px solid rgba(23,20,42,.14); border-radius: 10px; padding: 5px 8px; background: #fff; font-weight: 700; font-size: 13px; }
+.key { display: inline-block; padding: 2px 8px; border-radius: 7px; background: #fff; border: 1px solid var(--line); box-shadow: 0 1.5px 0 rgba(23,20,42,.08); font-weight: 800; font-size: 13px; }
+.check { color: var(--mint-text); font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 6px; }
+.check::before { content: "✓"; font-weight: 900; }
+.dot { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.label { font-size: 12.5px; font-weight: 800; letter-spacing: .4px; color: var(--ink-soft); text-transform: uppercase; }
+
+/* Pill */
+#pill-wrap { height: 100%; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; }
+.pill { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 18px 0 8px; border-radius: 29px; background: rgba(23,20,42,.92);
+  border: 1px solid rgba(255,255,255,.18); box-shadow: 0 10px 28px rgba(23,20,42,.35); color: #fff; animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
+.pill.small { height: 46px; padding-right: 16px; }
+.pill.amber { border: 2px solid var(--sun); box-shadow: 0 0 0 5px rgba(255,200,69,.25), 0 10px 28px rgba(23,20,42,.35); padding-right: 8px; }
+.pill .t { font-family: var(--title); font-weight: 600; font-size: 15px; white-space: nowrap; }
+.pill .sub { font-weight: 700; font-size: 13px; color: rgba(255,255,255,.75); white-space: nowrap; }
+.wave { display: flex; align-items: center; gap: 4px; height: 28px; }
+.wave span { width: 4px; border-radius: 2px; background: var(--coral-soft); transition: height .08s; }
+.dots { display: flex; gap: 5px; }
+.dots span { width: 6px; height: 6px; border-radius: 3px; background: #fff; animation: blink 1.2s infinite; }
+.dots span:nth-child(2) { animation-delay: .2s; } .dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%,100% { opacity: .3; transform: none; } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.lean { animation: lean 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes lean { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(-1deg) scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Panel (opens from the tray) */
+#panel { margin: 8px; height: calc(100% - 16px); border-radius: 16px; background: #FBFAFE; border: 1px solid rgba(23,20,42,.12);
+  box-shadow: 0 12px 34px rgba(23,20,42,.22); padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.shortcut { background: #fff; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.recent-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 0; background: transparent; text-align: left; width: 100%; }
+.recent-item:first-of-type, .recent-item:hover { background: #fff; }
+.icon-btn { width: 30px; height: 30px; border-radius: 15px; border: 0; background: #fff; color: var(--ink-soft); font-size: 15px; display: grid; place-items: center; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 0; width: 100%; }
+
+/* Settings */
+#settings { display: flex; height: 100%; }
+#settings nav { width: 200px; flex-shrink: 0; background: var(--mist); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line); }
+#settings nav button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 8px 10px; border-radius: 10px; font-weight: 700; font-size: 14px; text-align: left; }
+#settings nav button[aria-current="page"] { background: #fff; font-weight: 800; box-shadow: 0 1px 3px rgba(23,20,42,.08); }
+#settings nav button[aria-current="page"] .ico { color: var(--coral-text); }
+#settings main { flex: 1; overflow-y: auto; padding: 32px 32px 28px; display: flex; flex-direction: column; gap: 22px; -webkit-user-select: text; user-select: text; }
+.ico { width: 18px; text-align: center; color: var(--ink-soft); font-size: 15px; }
+.srow { display: flex; align-items: center; gap: 16px; padding: 13px 16px; border-top: 1px solid var(--line); }
+.srow:first-child { border-top: 0; }
+.srow .title { font-weight: 800; font-size: 14.5px; }
+.srow .detail { font-size: 13px; color: var(--ink-muted); margin-top: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px 6px 12px; border-radius: 999px; background: var(--mist); font-weight: 700; font-size: 13.5px; }
+.chip button { border: 0; background: none; color: var(--ink-muted); font-size: 11px; font-weight: 900; padding: 0 2px; }
+.chip.add { background: none; border: 1.5px dashed rgba(23,20,42,.25); padding: 0 6px 0 12px; }
+.chip.add input { border: 0; outline: none; width: 130px; padding: 6px 0; background: transparent; font-weight: 700; font-size: 13.5px; }
+.pairs .head, .pairs .item, .pairs .new { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 22px; gap: 10px; padding: 9px 14px; align-items: center; }
+.pairs .head { background: #FAF8FD; font-size: 12.5px; font-weight: 800; color: var(--ink-muted); }
+.pairs .item, .pairs .new { border-top: 1px solid var(--line); font-size: 14px; }
+.pairs .item b { font-weight: 800; }
+.pairs input { border: 0; outline: none; background: transparent; font-size: 14px; min-width: 0; }
+.pairs .rm, .pairs .plus { border: 0; background: none; font-weight: 900; color: var(--ink-muted); font-size: 15px; }
+.pairs .plus { color: var(--coral-text); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button { border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 700; font-size: 13.5px; background: var(--mist); }
+.seg button[aria-pressed="true"] { background: var(--coral); }
+.privacy { background: var(--ink); color: #fff; border-radius: 20px; padding: 20px; display: flex; gap: 18px; align-items: center; }
+.privacy ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 18px; font-size: 13.5px; font-weight: 600; }
+.privacy li::before { content: "✓ "; color: var(--mint); font-weight: 900; }
+.hist-item { display: flex; gap: 12px; padding: 12px 16px; border: 0; border-top: 1px solid var(--line); background: #fff; text-align: left; width: 100%; }
+.hist-item:first-child { border-top: 0; }
+
+/* Setup */
+#setup { height: 100%; padding: 26px 28px; display: flex; flex-direction: column; gap: 16px; text-align: center; background: #fff; }
+#setup.amber { background: #FFF8E1; }
+.steps { display: flex; gap: 6px; }
+.steps span { height: 7px; width: 7px; border-radius: 4px; background: rgba(23,20,42,.12); }
+.steps span.on { background: var(--coral); }
+.steps span.cur { width: 18px; }
+.hero { height: 170px; display: grid; place-items: center; position: relative; }
+.hero .glow { position: absolute; width: 168px; height: 168px; border-radius: 50%; }
+.body { font-size: 15.5px; line-height: 1.45; color: var(--ink-soft); margin: 0; }
+.meter { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--mist); text-align: left; }
+.bar { height: 10px; border-radius: 5px; background: #ECE8F3; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--coral); border-radius: 5px; }
+textarea.practice { width: 100%; height: 72px; resize: none; border-radius: 14px; border: 2px solid var(--line); padding: 10px; font-weight: 600; font-size: 15px; outline: none; -webkit-user-select: text; user-select: text; }
+textarea.practice.ok { border-color: var(--mint); }
+.spacer { flex: 1; }
+
+/* Gallery (browser preview only) */
+.frame { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(23,20,42,.15); position: relative; }
+.frame.clear { background: #DDE6F3; }
+.gal { display: flex; flex-wrap: wrap; gap: 28px; padding: 28px; align-items: flex-start; }
+.gal h3 { font: 700 12px var(--text); color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+// ---------- Bridge with the Rust side ----------
+const params = new URLSearchParams(location.hash.slice(1));
+const pip = {
+  view: window.PIP_VIEW || params.get("view") || (params.has("gallery") ? "gallery" : "panel"),
+  state: {},
+  strings: {},
+  send(cmd, args) {
+    const msg = JSON.stringify(Object.assign({ cmd }, args || {}));
+    if (window.ipc) window.ipc.postMessage(msg); else console.log("ipc →", msg);
+  },
+  update(patch) { Object.assign(pip.state, patch); if (patch.strings) pip.strings = patch.strings; render(); },
+};
+window.pip = pip;
+
+/** The translation of an English string, with each %@ replaced in order. */
+function t(key, ...args) {
+  let s = pip.strings[key] || key;
+  for (const a of args) s = s.replace("%@", a);
+  return s;
+}
+
+// ---------- Tiny DOM helper: strings become text nodes, never HTML ----------
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === false || v == null) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "svg") el.innerHTML = v;            // only for Pip's drawings, built from constants below
+    else if (k === "style") el.style.cssText = v;
+    else if (k === "value") el.value = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return el;
+}
+const btn = (label, onclick, cls = "btn") => h("button", { class: cls, onclick, type: "button" }, label);
+const sw = (on, onchange, label) => h("button", { class: "switch", role: "switch", "aria-checked": String(!!on), "aria-label": label, type: "button", onclick: () => onchange(!on) });
+
+// ---------- Pip, same curves and moods as the macOS app (macos/Sources/Theme.swift) ----------
+const BODY = "M100 52 C150 52 172 84 172 118 C172 152 142 170 100 170 C58 170 28 152 28 118 C28 84 50 52 100 52 Z";
+function pipSVG(mood, mini, size) {
+  const ink = "#17142A", k = mini ? 1.25 : 1, sw2 = w => w * (mini ? 1.4 : 1);
+  const eyes = (y, dx, rx, ry, shine) =>
+    `<ellipse cx="${80 + dx}" cy="${y}" rx="${rx * k}" ry="${ry * k}" fill="${ink}"/><ellipse cx="${120 + dx}" cy="${y}" rx="${rx * k}" ry="${ry * k}" fill="${ink}"/>` +
+    (!mini && shine ? `<circle cx="${83.5 + dx}" cy="${y - 6}" r="${shine}" fill="#fff"/><circle cx="${123.5 + dx}" cy="${y - 6}" r="${shine}" fill="#fff"/>` : "");
+  const line = (d, w) => `<path d="${d}" fill="none" stroke="${ink}" stroke-width="${sw2(w)}" stroke-linecap="round"/>`;
+  const faces = {
+    ready: eyes(112, 0, 8, 12, 3) + line("M92 134 Q100 141 108 134", 5),
+    listening: eyes(mini ? 108 : 110, 0, 9.5, 14, 3.6) + `<ellipse cx="100" cy="${mini ? 140 : 137}" rx="${5 * k}" ry="${4.5 * k}" fill="${ink}"/>`,
+    thinking: eyes(100, 6, 8, 12, 0) + line("M93 139 L109 139", 5),
+    happy: line("M68 112 Q80 99 92 112", 6.5) + line("M108 112 Q120 99 132 112", 6.5) + line("M86 130 Q100 146 114 130", 5.5),
+    oops: line("M64 96 L90 88", 5) + line("M136 96 L110 88", 5) + eyes(114, 0, 8, 11, 0) + line("M88 142 Q94 136 100 142 Q106 148 112 142", 4.5),
+    needsYou: eyes(104, 6, 8, 12, 2.6) + `<ellipse cx="104" cy="140" rx="4.5" ry="4" fill="${ink}"/>`,
+    resting: line("M70 112 L90 112", 6.5) + line("M110 112 L130 112", 6.5),
+  };
+  const body = mini ? `<path d="${BODY}" fill="#FF7A5C" opacity="${mood === "resting" ? .75 : 1}"/>`
+    : `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFA184"/><stop offset="1" stop-color="#FF6A4D"/></linearGradient></defs>` +
+      `<path d="${BODY}" fill="url(#g)"/><ellipse cx="72" cy="80" rx="18" ry="9" fill="#fff" opacity=".4" transform="rotate(-20 72 80)"/>` +
+      `<ellipse cx="62" cy="130" rx="9" ry="5" fill="#E8365D" opacity=".3"/><ellipse cx="138" cy="130" rx="9" ry="5" fill="#E8365D" opacity=".3"/>`;
+  const tilt = mood === "needsYou" ? ` transform="rotate(-10 100 165)"` : "";
+  return `<svg viewBox="20 40 160 145" width="${size}" height="${Math.round(size * 145 / 160)}" role="img" aria-label="Pip"><g${tilt}>${body}${faces[mood] || faces.ready}</g></svg>`;
+}
+const pipEl = (mood, mini, size, cls) => h("span", { svg: pipSVG(mood, mini, size), class: cls || "", style: "display:inline-flex" });
+
+// ---------- Shared bits ----------
+function keysFor(trigger) { return trigger === "RightCtrl" ? [t("Right Ctrl")] : ["Ctrl", "Win"]; }
+function shortcutName(trigger) { return trigger === "RightCtrl" ? t("Right Ctrl") : "Ctrl + Win"; }
+function words(n) { return n === 1 ? t("1 word") : t("%@ words", String(n)); }
+function ago(iso) {
+  const s = (Date.now() - Date.parse(iso)) / 1000, lang = pip.state.locale || "en";
+  if (s < 60) return t("just now");
+  try {
+    const f = new Intl.RelativeTimeFormat(lang, { numeric: "always", style: "short" });
+    if (s < 3600) return f.format(-Math.round(s / 60), "minute");
+    if (s < 86400) return f.format(-Math.round(s / 3600), "hour");
+    if (s < 86400 * 7) return f.format(-Math.round(s / 86400), "day");
+    return new Date(iso).toLocaleDateString(lang, { dateStyle: "medium" });
+  } catch { return new Date(iso).toLocaleDateString(); }
+}
+function selectEl(id, options, value, onchange, label) {
+  const s = h("select", { id, "aria-label": label, onchange: e => onchange(e.target.value) }, options.map(([v, n]) => h("option", { value: v }, n)));
+  s.value = value;
+  return s;
+}
+function uiLanguages() {
+  return [["system", t("Same as the system")], ["en", "English"], ["fr", "Français"], ["de", "Deutsch"], ["it", "Italiano"], ["es", "Español"], ["pt", "Português"]];
+}
+function dictationLanguages(short) {
+  return [["auto", short ? t("Automatic") : t("Automatic (detect language)")], ["fr", "Français"], ["en", "English"], ["it", "Italiano"], ["de", "Deutsch"], ["es", "Español"], ["pt", "Português"]];
+}
+
+// ---------- Pill ----------
+let pillStart = 0;
+function viewPill(s) {
+  const p = s.pill;
+  if (!p) return h("div", { id: "pill-wrap" });
+  const live = p.kind === "listening" || p.kind === "handsFree";
+  const mood = { listening: "listening", handsFree: "listening", thinking: "thinking", typed: "happy", info: "happy", copied: "ready", oops: "oops", needsYou: "needsYou", cancelled: "resting" }[p.kind];
+  const small = p.kind === "cancelled";
+  const kids = [pipEl(mood, true, small ? 36 : 44, live ? "lean" : "")];
+  if (live) {
+    const levels = (s.levels || []).slice(-10);
+    kids.push(h("div", { class: "wave" }, levels.map(l => h("span", { style: `height:${6 + 22 * Math.min(1, Math.max(0, l))}px` }))));
+    kids.push(h("span", { class: "t" }, p.kind === "handsFree" ? t("Hands-free") : t("Listening")));
+    kids.push(h("span", { class: "grow" }));
+    if (p.kind === "handsFree") kids.push(h("span", { class: "sub" }, "🔒 " + t("%@ to finish", shortcutName(s.trigger))));
+    else { const e = pillStart ? Math.max(0, Math.floor((Date.now() - pillStart) / 1000)) : 0; kids.push(h("span", { class: "sub" }, `${Math.floor(e / 60)}:${String(e % 60).padStart(2, "0")}`)); }
+  } else if (p.kind === "thinking") {
+    kids.push(h("span", { class: "t" }, t("Writing it down")), h("span", { class: "dots" }, h("span"), h("span"), h("span")));
+  } else if (p.kind === "typed") {
+    kids.push(h("span", { style: "color:var(--mint);font-weight:900" }, "✓"), h("span", { class: "t ellipsis", style: "max-width:220px" }, p.app ? t("Typed in %@", p.app) : t("Typed")), h("span", { class: "sub" }, words(p.words || 0)));
+  } else if (p.kind === "copied") {
+    kids.push(h("span", { class: "t" }, t("Copied")), h("span", { class: "sub" }, t("Ctrl+V to paste")));
+  } else if (p.kind === "needsYou") {
+    kids.push(h("span", { class: "t" }, p.message || ""), btn(t("Set up"), () => pip.send("setup"), "btn amber"));
+  } else if (p.kind === "cancelled") {
+    kids.push(h("span", { class: "t", style: "font-size:14px;opacity:.85" }, t("Cancelled")));
+  } else {
+    kids.push(h("span", { class: "t" }, p.message || ""));
+  }
+  return h("div", { id: "pill-wrap" }, h("div", { class: "pill" + (small ? " small" : "") + (p.kind === "needsYou" ? " amber" : "") }, kids));
+}
+
+// ---------- Panel ----------
+function statusLine(s) {
+  if (!s.hasWhisper) return [t("whisper.cpp isn't installed"), "#E0A100"];
+  if (!s.hasModel) return [t("The voice model is missing"), "#E0A100"];
+  if (s.mode === "holding" || s.mode === "handsFree") return [t("Listening…"), "#2FBF8C"];
+  if (s.mode === "working") return [t("Writing it down…"), "#2FBF8C"];
+  return s.whisperReady ? [t("Ready · Whisper runs on this PC"), "#2FBF8C"] : [t("Whisper is loading…"), "#FFC845"];
+}
+function viewPanel(s) {
+  const st = s.settings || {}, [status, color] = statusLine(s), need = !s.hasWhisper || !s.hasModel;
+  const mood = s.mode === "working" ? "thinking" : (s.mode === "idle" || !s.mode) ? (need ? "needsYou" : "ready") : "listening";
+  const recent = (s.history || []).slice(0, 3);
+  return h("div", { id: "panel" },
+    h("div", { class: "row" }, pipEl(mood, false, 44),
+      h("div", { class: "col grow" }, h("h2", { style: "font-size:18px" }, "Pip Dictée"),
+        h("div", { class: "row", style: "gap:6px;font-size:12.5px;font-weight:700" }, h("span", { class: "dot", style: `background:${color}` }), h("span", { class: "soft" }, status))),
+      h("button", { class: "icon-btn", type: "button", title: t("Quit Pip Dictée"), "aria-label": t("Quit Pip Dictée"), onclick: () => pip.send("quit") }, "⏻")),
+    need ? h("div", { class: "row", style: "padding:12px;border-radius:14px;background:#FFF8E1;border:1px solid rgba(255,200,69,.6)" },
+      h("span", { class: "grow", style: "font-weight:700;font-size:13.5px;color:var(--sun-text)" }, s.hasWhisper ? t("Download the voice model") : t("Install whisper.cpp")),
+      btn(t("Set up…"), () => pip.send("setup"), "btn amber")) : null,
+    h("div", { class: "shortcut" },
+      h("div", { class: "row", style: "gap:6px;font-weight:700;font-size:14px;flex-wrap:wrap" }, t("Hold"), keysFor(st.trigger).map(k => h("span", { class: "key" }, k)), t("and talk")),
+      h("div", { class: "soft", style: "font-size:12.5px" }, t("Add Space for hands-free · Esc cancels")),
+      h("button", { class: "btn fill", type: "button", disabled: s.mode === "working", onclick: () => pip.send("toggle") },
+        s.mode === "working" ? t("Writing it down…") : (s.mode === "idle" || !s.mode) ? t("Start hands-free") : t("Finish dictation"))),
+    h("div", { class: "col", style: "gap:4px" },
+      h("div", { class: "row" }, h("span", { class: "label grow" }, t("RECENT")), h("button", { class: "link", type: "button", onclick: () => pip.send("settings", { tab: "history" }) }, t("All history"))),
+      recent.length ? recent.map(e => h("button", { class: "recent-item", type: "button", title: e.text, onclick: ev => { pip.send("copy", { text: e.text }); ev.currentTarget.querySelector(".cp").textContent = "✓ " + t("Copied"); } },
+        h("div", { class: "col grow" }, h("span", { class: "ellipsis", style: "font-weight:700;font-size:13.5px" }, e.text.replace(/\n/g, " ")),
+          h("span", { class: "muted", style: "font-size:12px" }, [e.app, ago(e.at)].filter(Boolean).join(" · "))),
+        h("span", { class: "cp soft", style: "font-size:12.5px;font-weight:700;white-space:nowrap" }, "⧉")))
+        : h("div", { class: "muted", style: "font-size:13px;padding:8px 0" }, t("Your dictations will show up here."))),
+    h("hr"),
+    h("div", { class: "col", style: "gap:10px" },
+      h("div", { class: "row" }, h("label", { class: "grow", for: "p-lang", style: "font-weight:700;font-size:13.5px" }, t("Dictation language")),
+        selectEl("p-lang", dictationLanguages(true), st.lang || "auto", v => pip.send("set", { key: "lang", value: v }), t("Dictation language"))),
+      h("div", { class: "row" }, h("span", { class: "grow", style: "font-weight:700;font-size:13.5px" }, t("Paste automatically")), sw(st.auto_paste, v => pip.send("set", { key: "auto_paste", value: v }), t("Paste automatically"))),
+      h("div", { class: "row" }, h("span", { class: "grow", style: "font-weight:700;font-size:13.5px" }, t("Remove filler words")), sw(st.remove_fillers, v => pip.send("set", { key: "remove_fillers", value: v }), t("Remove filler words")))),
+    h("div", { class: "spacer" }),
+    h("hr"),
+    h("div", { class: "row", style: "gap:8px" },
+      btn(t("Dictionary…"), () => pip.send("settings", { tab: "dictionary" }), "btn secondary fill"),
+      btn(t("Settings…"), () => pip.send("settings", { tab: "general" }), "btn secondary fill")));
+}
+
+// ---------- Settings ----------
+const TABS = [["general", "⚙", "General"], ["dictionary", "📖", "Dictionary"], ["history", "🕘", "History"], ["privacy", "🛡", "Privacy"], ["about", "ⓘ", "About"]];
+function srow(title, detail, ...right) {
+  return h("div", { class: "srow" }, h("div", { class: "grow" }, h("div", { class: "title" }, title), detail ? h("div", { class: "detail" }, detail) : null), ...right);
+}
+function header(title, sub, ...right) {
+  return h("div", { class: "row", style: "align-items:flex-start" }, h("div", { class: "col grow", style: "gap:4px" }, h("h1", { style: "font-size:28px" }, title), h("span", { class: "soft", style: "font-size:14.5px" }, sub)), ...right);
+}
+function viewSettings(s) {
+  const tab = s.tab || "general", st = s.settings || {};
+  const set = (key, value) => pip.send("set", { key, value });
+  let main;
+  if (tab === "general") {
+    main = [header(t("General"), t("How you start a dictation, and what happens to the text.")),
+      h("div", { class: "col", style: "gap:8px" }, h("div", { class: "label" }, t("Shortcut"), h("span", { style: "text-transform:none;font-weight:700;color:var(--ink-muted)" }, " · " + t("hold it to talk, add Space for hands-free"))),
+        h("div", { class: "seg" }, [["CtrlWin", "Ctrl + Win"], ["RightCtrl", t("Right Ctrl")]].map(([v, n]) => h("button", { type: "button", "aria-pressed": String(st.trigger === v), onclick: () => set("trigger", v) }, n)))),
+      h("div", { class: "card" },
+        srow(t("App language"), t("The language of Pip Dictée's menus and windows."), selectEl("s-ui", uiLanguages(), st.ui_language || "system", v => set("ui_language", v), t("App language"))),
+        srow(t("Dictation language"), t("Automatic recognises English, French, German, Italian, Spanish, Portuguese and many more."), selectEl("s-lang", dictationLanguages(), st.lang || "auto", v => set("lang", v), t("Dictation language"))),
+        srow(t("Paste automatically"), t("Types the text where your cursor is. Off: it's only copied."), sw(st.auto_paste, v => set("auto_paste", v), t("Paste automatically"))),
+        srow(t("Remove filler words"), t("um, uh, euh, äh"), sw(st.remove_fillers, v => set("remove_fillers", v), t("Remove filler words"))),
+        srow(t("Sounds"), t("A soft tick when Pip starts and stops listening."), sw(st.sounds, v => set("sounds", v), t("Sounds"))),
+        srow(t("Open at sign-in"), t("Starts Pip Dictée when you sign in to Windows."), sw(s.openAtLogin, v => set("open_at_login", v), t("Open at sign-in")))),
+      h("div", { class: "row" }, h("span", { class: "grow muted", style: "font-size:13px" }, t("No sound reaches Pip? Check the microphone in Windows settings.")),
+        h("button", { class: "link", type: "button", onclick: () => pip.send("open", { what: "micPrivacy" }) }, t("Open microphone privacy settings")))];
+  } else if (tab === "dictionary") {
+    const d = s.dictionary || { words: [], replacements: {}, snippets: {} };
+    const save = () => pip.send("dictionary", { dictionary: d });
+    const pairs = (title, detail, left, right, map, addLabel, idp) => h("div", { class: "col", style: "gap:8px" },
+      h("div", { class: "label" }, title, detail ? h("span", { style: "text-transform:none;font-weight:700;color:var(--ink-muted)" }, " · " + detail) : null),
+      h("div", { class: "card pairs" },
+        h("div", { class: "head" }, h("span", {}, left), h("span", {}, right), h("span")),
+        Object.keys(map).sort().map(k => h("div", { class: "item" }, h("span", {}, k), h("b", {}, map[k]),
+          h("button", { class: "rm", type: "button", "aria-label": t("Remove %@", k), onclick: () => { delete map[k]; save(); } }, "−"))),
+        (() => {
+          const a = h("input", { id: idp + "-a", placeholder: left, "aria-label": left }), b = h("input", { id: idp + "-b", placeholder: right, "aria-label": right });
+          const add = () => { const f = a.value.trim(), v = b.value.trim(); if (f && v) { map[f] = v; a.value = b.value = ""; save(); } };
+          b.addEventListener("keydown", e => { if (e.key === "Enter") add(); });
+          return h("div", { class: "new" }, a, b, h("button", { class: "plus", type: "button", "aria-label": addLabel, onclick: add }, "+"));
+        })()));
+    const wordInput = h("input", { id: "d-word", placeholder: t("Add a word"), "aria-label": t("Add a word") });
+    wordInput.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      const w = wordInput.value.trim();
+      if (w && !d.words.includes(w)) { d.words.push(w); wordInput.value = ""; save(); }
+    });
+    main = [header(t("Dictionary"), t("Pip spells these your way. Words are also hints for Whisper.")),
+      h("div", { class: "col", style: "gap:10px" }, h("div", { class: "label" }, t("Words"), h("span", { style: "font-weight:700;color:var(--ink-muted)" }, " · " + d.words.length)),
+        h("div", { class: "chips" }, d.words.map(w => h("span", { class: "chip" }, w, h("button", { type: "button", "aria-label": t("Remove %@", w), onclick: () => { d.words = d.words.filter(x => x !== w); save(); } }, "✕"))),
+          h("span", { class: "chip add" }, wordInput))),
+      pairs(t("Replacements"), null, t("When I say"), t("Pip writes"), d.replacements, t("Add a replacement"), "d-rep"),
+      pairs(t("Snippets"), t("say a phrase, get a block of text"), t("When I say"), t("Pip types"), d.snippets, t("Add a snippet"), "d-snip")];
+  } else if (tab === "history") {
+    const hist = s.history || [];
+    main = [header(t("History"), t("Your last 200 dictations. Click one to copy it."), btn(t("Clear history"), () => pip.send("clearHistory"), "btn secondary")),
+      h("div", { class: "card" }, srow(t("Keep history"), t("Stored only on this PC, in your user folder."), sw(st.keep_history, v => set("keep_history", v), t("Keep history")))),
+      hist.length ? h("div", { class: "card" }, hist.map(e => h("button", { class: "hist-item", type: "button", onclick: ev => { pip.send("copy", { text: e.text }); ev.currentTarget.querySelector(".cp").textContent = "✓ " + t("Copied"); } },
+        h("div", { class: "col grow", style: "gap:4px" }, h("span", { style: "font-size:14px;white-space:pre-wrap" }, e.text),
+          h("span", { class: "muted", style: "font-size:12px" }, [e.app, ago(e.at), words(e.text.split(/\s+/).filter(Boolean).length)].filter(Boolean).join(" · "))),
+        h("span", { class: "cp soft", style: "font-weight:700;font-size:12.5px;white-space:nowrap" }, "⧉"))))
+        : h("div", { class: "col", style: "align-items:center;gap:10px;padding-top:20px" }, pipEl("resting", false, 70), h("span", { class: "muted", style: "font-weight:700" }, st.keep_history ? t("No dictations yet.") : t("History is off.")))];
+  } else if (tab === "privacy") {
+    main = [h("div", { class: "privacy" }, pipEl("ready", false, 76),
+        h("div", { class: "grow" }, h("h2", { style: "font-size:22px" }, t("Everything stays on this PC")),
+          h("ul", {}, h("li", {}, t("Audio is deleted right after")), h("li", {}, t("Whisper works offline")), h("li", {}, t("The log never has your words")), h("li", {}, t("Clipboard history and cloud sync skip dictations"))))),
+      h("div", { class: "card" },
+        srow(t("Keep history"), t("Your last 200 dictations, only on this PC."), btn(t("Clear history"), () => pip.send("clearHistory"), "btn secondary"), sw(st.keep_history, v => set("keep_history", v), t("Keep history")))),
+      h("div", { class: "row", style: "justify-content:flex-end" }, h("button", { class: "link", type: "button", onclick: () => pip.send("open", { what: "dataFolder" }) }, t("Open the data folder")))];
+  } else {
+    main = [h("div", { class: "row", style: "gap:18px" }, pipEl("happy", false, 96), h("div", { class: "col", style: "gap:4px" }, h("h1", { style: "font-size:30px" }, "Pip Dictée"), h("span", { class: "soft" }, t("Version %@ · free and open source (MIT)", s.version || "")))),
+      h("p", { class: "body", style: "text-align:left" }, t("Hold a key, talk, let go: Pip types what you said, in any app. Transcription runs on this PC with whisper.cpp and OpenAI's Whisper model.")),
+      h("div", { class: "row" }, btn(t("Source code"), () => pip.send("open", { what: "source" }), "btn secondary"), btn(t("Report a problem"), () => pip.send("open", { what: "issues" }), "btn secondary"), btn(t("Run setup again"), () => pip.send("setup"), "btn secondary"))];
+  }
+  return h("div", { id: "settings" },
+    h("nav", { "aria-label": t("Pip Dictée Settings") }, TABS.map(([id, ico, name]) =>
+      h("button", { type: "button", "aria-current": tab === id ? "page" : false, onclick: () => pip.update({ tab: id }) }, h("span", { class: "ico", "aria-hidden": "true" }, ico), t(name)))),
+    h("main", {}, main));
+}
+
+// ---------- Setup (first launch) ----------
+// 1 welcome · 2 microphone · 3 voice engine and model · 4 try it. No Accessibility step: Windows doesn't need one.
+function viewSetup(s) {
+  const step = s.step || 0, mic = s.mic || {}, dl = s.download || { state: "idle" }, st = s.settings || {};
+  const labels = [t("1 of 4"), t("2 of 4 · Microphone"), t("3 of 4 · Voice model"), t("4 of 4 · Try it")];
+  const go = n => pip.send("step", { step: n });
+  const hero = (mood, glow) => h("div", { class: "hero" }, glow ? h("span", { class: "glow", style: `background:${glow}` }) : null, pipEl(mood, false, 150));
+  const title = (a, b) => [h("h1", { style: "font-size:30px" }, a), h("p", { class: "body" }, b)];
+  let body;
+  if (step === 0) {
+    body = [h("div", { class: "row" }, h("span", { "aria-hidden": "true" }, "🌐"), h("label", { for: "o-ui", class: "grow soft", style: "text-align:left;font-weight:700;font-size:13px" }, t("App language")),
+        selectEl("o-ui", uiLanguages(), st.ui_language || "system", v => pip.send("set", { key: "ui_language", value: v }), t("App language"))),
+      hero("happy"), ...title(t("Hi! I'm Pip."), t("Hold a key, talk, and I'll type for you, in any app. Everything stays on this PC.")),
+      h("span", { class: "muted", style: "font-size:13.5px" }, t("Two quick things and we're ready.")), h("div", { class: "spacer" }), btn(t("Let's set it up"), () => go(1), "btn fill")];
+  } else if (step === 1) {
+    const levels = (mic.levels || []).slice(-8);
+    body = [hero("listening", "rgba(255,106,77,.18)"), ...title(t("Can I hear you?"), t("Say anything, so I can check that I hear you. I only listen while you hold the shortcut.")),
+      h("div", { class: "meter col", style: "align-items:stretch;gap:8px" },
+        h("div", { class: "row" }, h("div", { class: "wave" }, levels.map(l => h("span", { style: `height:${6 + 22 * Math.min(1, l)}px;background:var(--coral)` }))), h("span", { class: "grow" }),
+          mic.heard ? h("span", { class: "check" }, t("I can hear you")) : h("span", { class: "muted", style: "font-weight:700;font-size:13.5px" }, t("Say something…"))),
+        mic.name ? h("span", { class: "muted ellipsis", style: "font-size:12px" }, t("Using: %@", mic.name)) : null),
+      mic.quiet && !mic.heard ? h("div", { class: "col", style: "gap:8px;align-items:center" },
+        h("span", { style: "color:var(--sun-text);font-size:13px" }, t("I can't hear you yet. Check that the right microphone is selected and not muted.")),
+        h("button", { class: "link", type: "button", onclick: () => pip.send("open", { what: "micPrivacy" }) }, t("Open microphone privacy settings"))) : null,
+      h("div", { class: "spacer" }), btn(mic.heard ? t("Next") : t("Skip for now"), () => go(2), mic.heard ? "btn fill" : "btn secondary fill")];
+  } else if (step === 2) {
+    const ready = s.hasWhisper && s.hasModel;
+    let status, action;
+    if (ready || dl.state === "done") { status = h("span", { class: "check" }, t("Downloaded and verified")); action = btn(t("Next"), () => go(3), "btn fill"); }
+    else if (dl.state === "downloading") {
+      const pct = Math.round((dl.progress || 0) * 100);
+      status = h("div", { class: "col", style: "gap:8px;text-align:left" }, h("span", { class: "soft", style: "font-weight:700;font-size:13px" }, { engine: t("Downloading the voice engine…"), model: t("Downloading the voice model…"), vad: t("Downloading voice detection…") }[dl.stage] || ""),
+        h("div", { class: "bar" }, h("span", { style: `width:${Math.max(3, pct)}%` })),
+        h("div", { class: "row soft", style: "font-weight:700;font-size:13px" }, h("span", { class: "grow" }, t("%@ of %@", dl.done || "", dl.total || "")), h("span", {}, pct + " %")),
+        h("span", { class: "muted", style: "font-size:12.5px" }, t("Checked with SHA-256 before I use it.")));
+      action = btn(t("Cancel"), () => pip.send("cancelDownload"), "btn secondary fill");
+    } else if (dl.state === "verifying") { status = h("span", { class: "soft", style: "font-weight:700" }, t("Checking the file…")); action = btn(t("Checking the file…"), null, "btn secondary fill"); action.disabled = true; }
+    else {
+      status = dl.state === "failed" ? h("span", { style: "color:var(--sun-text);font-weight:700;font-size:13.5px" }, dl.error || "") : h("span", { class: "muted", style: "font-size:13px" }, t("Checked with SHA-256 before I use it."));
+      action = btn(dl.state === "failed" ? t("Try again") : t("Download (1.6 GB)"), () => pip.send("download"), "btn fill");
+    }
+    body = [hero(ready || dl.state === "done" ? "happy" : "thinking"), ...title(ready || dl.state === "done" ? t("Got my ears") : t("Getting my ears"),
+      t("I download whisper.cpp and the Whisper model once (1.6 GB). After that I work offline, forever.")), status, h("div", { class: "spacer" }), action];
+  } else {
+    const first = (s.history || [])[0];
+    if (pip.practiceStep !== 3) { pip.practiceStep = 3; pip.practiceSince = first ? first.at : null; }
+    const heard = s.demoHeard || (first && first.at !== pip.practiceSince ? first.text : null);
+    const box = h("textarea", { id: "o-practice", class: "practice" + (heard ? " ok" : ""), "aria-label": t("Practice box") });
+    box.value = heard || "";
+    body = [hero("happy"), ...title(t("Your turn"), t("Hold %@, say “Hello Pip, this is my first dictation.”, then let go.", shortcutName(st.trigger))),
+      h("div", { class: "col", style: "gap:6px;text-align:left" }, h("label", { for: "o-practice", class: "muted", style: "font-weight:800;font-size:12.5px" }, heard ? t("Here's what I heard") : t("Practice box")), box),
+      heard ? h("span", { class: "check" }, t("It works. You're all set.")) : h("span", { class: "muted", style: "font-size:13px" }, t("Your words will appear in the box.")),
+      h("div", { class: "spacer" }), btn(heard ? t("Done") : t("Skip for now"), () => pip.send("setupDone"), heard ? "btn fill" : "btn secondary fill")];
+  }
+  if (step !== 3) pip.practiceStep = step;
+  return h("div", { id: "setup", class: "" },
+    h("div", { class: "row" }, h("span", { class: "muted grow", style: "text-align:left;font-weight:800;font-size:12.5px" }, labels[step]),
+      h("div", { class: "steps" }, [0, 1, 2, 3].map(i => h("span", { class: (i <= step ? "on" : "") + (i === step ? " cur" : "") })))),
+    body);
+}
+
+// ---------- Render, keeping focus and typing intact across updates ----------
+const VIEWS = { pill: viewPill, panel: viewPanel, settings: viewSettings, setup: viewSetup };
+function render() {
+  const root = document.getElementById("root");
+  if (pip.view === "gallery") return renderGallery(root);
+  const active = document.activeElement, id = active && active.id, val = active && active.value, sel = active && active.selectionStart;
+  const scroll = root.querySelector("main") ? root.querySelector("main").scrollTop : 0;
+  if (pip.view === "pill" && pip.state.pill && (pip.state.pill.kind === "listening" || pip.state.pill.kind === "handsFree") && !pillStart) pillStart = Date.now();
+  if (pip.view === "pill" && !(pip.state.pill && (pip.state.pill.kind === "listening" || pip.state.pill.kind === "handsFree"))) pillStart = 0;
+  root.replaceChildren(VIEWS[pip.view](pip.state));
+  document.body.className = pip.view === "settings" || pip.view === "setup" ? "page" : "";
+  const m = root.querySelector("main"); if (m) m.scrollTop = scroll;
+  if (id && active.tagName !== "SELECT") {
+    const again = document.getElementById(id);
+    if (again) { if (val !== undefined && again.id !== "o-practice") again.value = val; again.focus(); try { again.setSelectionRange(sel, sel); } catch {} }
+  }
+}
+// The pill's timer ticks without the Rust side having to send anything.
+setInterval(() => { if (pip.view === "pill" && pillStart) render(); }, 1000);
+
+// ---------- Browser preview: every screen with sample data (never used inside the app) ----------
+function sample() {
+  const now = Date.now(), iso = ms => new Date(now - ms).toISOString();
+  return {
+    mode: "idle", whisperReady: true, hasWhisper: true, hasModel: true, version: "2.1", openAtLogin: false,
+    settings: { trigger: "CtrlWin", lang: "auto", ui_language: "system", auto_paste: true, remove_fillers: true, sounds: true, keep_history: true },
+    history: [{ text: "Thanks for the notes on the intro. I agree the first ten seconds drag.", at: iso(120000), app: "Outlook" },
+      { text: "Can we move the call to 4 pm? I'm stuck in a review.", at: iso(1080000), app: "Teams" },
+      { text: "Add a retry when the whisper server isn't ready yet.", at: iso(3700000), app: "Code" }],
+    dictionary: { words: ["Kubernetes", "TypeScript", "Node.js", "Claude", "Pip", "whisper.cpp"], replacements: { "type script": "TypeScript", "java script": "JavaScript" }, snippets: { "my email": "[YOUR EMAIL]" } },
+    levels: [.2, .6, .4, .9, .5, .75, .3, .8, .45, .6],
+  };
+}
+function frame(title, w, hgt, view, patch, clear) {
+  const saved = pip.view, savedState = pip.state;
+  pip.view = view; pip.state = Object.assign(sample(), { locale: savedState.locale }, patch || {});
+  const content = VIEWS[view](pip.state);
+  pip.view = saved; pip.state = savedState;
+  return h("div", {}, h("h3", {}, title), h("div", { class: "frame" + (clear ? " clear" : ""), style: `width:${w}px;height:${hgt}px` }, content));
+}
+function renderGallery(root) {
+  const pills = [["listening", {}], ["handsFree", {}], ["thinking", {}], ["typed", { app: "Outlook", words: 21 }], ["copied", {}], ["oops", { message: t("I didn't hear anything") }], ["needsYou", { message: t("The voice model is missing") }], ["cancelled", {}]];
+  root.replaceChildren(h("div", { class: "gal" },
+    h("div", { class: "col", style: "gap:10px" }, h("h3", {}, "Pill"), pills.map(([k, p]) => frame("", 460, 82, "pill", { pill: Object.assign({ kind: k }, p) }, true))),
+    frame("Panel", 360, 700, "panel", {}, true),
+    frame("Panel — needs setup", 360, 700, "panel", { hasModel: false }, true),
+    ...["general", "dictionary", "history", "privacy", "about"].map(tab => frame("Settings — " + tab, 860, 600, "settings", { tab })),
+    frame("Setup 1", 420, 640, "setup", { step: 0 }),
+    frame("Setup 2", 420, 640, "setup", { step: 1, mic: { heard: true, levels: [.3, .7, .5, .9, .4, .6, .8, .5], name: "Microphone (Realtek Audio)" } }),
+    frame("Setup 2 — quiet", 420, 640, "setup", { step: 1, mic: { quiet: true, levels: [0, 0, .02, 0, 0, 0, .01, 0], name: "Microphone (Realtek Audio)" } }),
+    frame("Setup 3", 420, 640, "setup", { step: 2, hasModel: false, download: { state: "downloading", stage: "model", progress: .62, done: "1.0 GB", total: "1.6 GB" } }),
+    frame("Setup 4", 420, 640, "setup", { step: 3, demoHeard: "Hello Pip, this is my first dictation." })));
+  document.body.className = "gallery";
+}
+
+if (!window.ipc) {
+  // Preview in a browser: strings from shared/i18n (served from the repository root).
+  const lang = params.get("lang") || "en";
+  const go = strings => { pip.state = sample(); pip.state.locale = lang; if (pip.view === "pill") pip.state.pill = { kind: "listening" }; pip.strings = strings; render(); };
+  if (lang === "en") go({}); else fetch(`../../shared/i18n/${lang}.json`).then(r => r.json()).then(go).catch(() => go({}));
+} else {
+  pip.send("ready");
+}
+</script>
+</body>
+</html>
