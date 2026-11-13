@@ -44,7 +44,7 @@ jobs:
         run: ./macos/build.sh
       - name: Clean-up cases
         run: '"macos/build/Pip Dictée.app/Contents/MacOS/PipDictee" --test-cleanup shared/cleanup-cases.json'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PipDictee-macos
           path: macos/build/
@@ -61,7 +61,7 @@ jobs:
         run: cargo test --locked
       - name: Build
         run: cargo build --release --locked
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PipDictee-windows
           path: windows/target/release/PipDictee.exe

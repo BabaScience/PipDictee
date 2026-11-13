@@ -18,7 +18,7 @@ jobs:
         run: '"macos/build/Pip Dictée.app/Contents/MacOS/PipDictee" --test-cleanup shared/cleanup-cases.json'
       - name: Zip
         run: cd macos/build && ditto -c -k --keepParent "Pip Dictée.app" "../../PipDictee-macOS.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: macos, path: PipDictee-macOS.zip }
 
   windows:
@@ -31,7 +31,7 @@ jobs:
       - name: Zip
         shell: pwsh
         run: Compress-Archive -Path target/release/PipDictee.exe -DestinationPath ../PipDictee-Windows.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: windows, path: PipDictee-Windows.zip }
 
   release:
