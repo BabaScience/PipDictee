@@ -11,27 +11,27 @@ jobs:
   macos:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build (ad hoc signature; see the release notes about Gatekeeper)
         run: ./macos/build.sh
       - name: Clean-up cases
         run: '"macos/build/Pip Dictée.app/Contents/MacOS/PipDictee" --test-cleanup shared/cleanup-cases.json'
       - name: Zip
         run: cd macos/build && ditto -c -k --keepParent "Pip Dictée.app" "../../PipDictee-macOS.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: macos, path: PipDictee-macOS.zip }
 
   windows:
     runs-on: windows-latest
     defaults: { run: { working-directory: windows } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo test --locked
       - run: cargo build --release --locked
       - name: Zip
         shell: pwsh
         run: Compress-Archive -Path target/release/PipDictee.exe -DestinationPath ../PipDictee-Windows.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: windows, path: PipDictee-Windows.zip }
 
   release:
@@ -40,7 +40,7 @@ jobs:
     permissions:
       contents: write   # only this job may create the release
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { merge-multiple: true }
       - name: Checksums
         run: sha256sum PipDictee-*.zip > SHA256SUMS.txt
