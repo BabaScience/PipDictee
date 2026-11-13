@@ -1,10 +1,52 @@
 version: 2
 updates:
+  # Rust (Windows app). Only updates that keep the same API, grouped into one weekly pull request.
+  # Version jumps that change the API (a new major version, or a new 0.x for crates still below 1.0) are migrated on
+  # purpose, in a pull request tested on Windows, not proposed automatically.
+  # Security alerts still show in the repository's Security tab, whatever is ignored here.
   - package-ecosystem: cargo
     directory: /windows
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      rust-compatible-updates:
+        update-types: [minor, patch]
+    ignore:
+      # Every crate: no major jumps (1.x → 2.x, 2.x → 3.x…).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Crates below 1.0: a new 0.x is a breaking change too, so only patch updates (0.15.3 → 0.15.4).
+      - dependency-name: "chrono"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "cpal"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "fancy-regex"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "native-tls"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "png"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "sha2"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "sys-locale"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "tao"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "tray-icon"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "windows"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "winresource"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "wry"
+        update-types: ["version-update:semver-minor"]
+
+  # GitHub Actions used by CI and releases: all updates, grouped into one weekly pull request.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
