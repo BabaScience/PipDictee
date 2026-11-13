@@ -16,3 +16,6 @@
 
 **Windows** (new, not yet tested on many PCs: please report issues)
 - Native app in Rust with WebView2 windows, Ctrl + Win shortcut, in-app download of whisper.cpp and the model.
+- Installer (`PipDictee-Setup-<version>.exe`): per-user, no administrator rights, six languages, Start-menu and
+  optional desktop shortcuts, optional open at sign-in, checks for WebView2, and an uninstaller that asks before
+  deleting your data.

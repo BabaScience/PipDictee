@@ -72,15 +72,25 @@ first dictation.
 
 ### Windows 10 / 11
 
+1. Download **`PipDictee-Setup-<version>.exe`** from the [latest release](../../releases/latest).
+2. Run it. No administrator rights needed: Pip installs for your user only, in your language, with a Start-menu
+   shortcut and an option to open at sign-in. The installer isn't code-signed yet, so Windows may say *"Windows
+   protected your PC"*: click **More info › Run anyway**.
+3. Pip greets you: microphone check, then whisper.cpp and the voice model (1.6 GB, checked with SHA-256), then a
+   first dictation.
+
+Pip lives in the notification area: click it for the panel, right-click for Settings and Quit. To remove it:
+**Settings › Apps › Pip Dictée › Uninstall** (it asks whether to keep your dictionary and the model).
+
+Prefer building it yourself?
+
 ```powershell
 git clone https://github.com/BabaScience/PipDictee.git; cd PipDictee\windows
 cargo build --release                            # needs Rust: https://rustup.rs
 .\target\release\PipDictee.exe
 ```
 
-Setup does the rest: microphone check, then whisper.cpp and the model (1.6 GB, checked with SHA-256). Pip lives in
-the notification area: click it for the panel, right-click for Settings and Quit. Have an NVIDIA GPU? Run
-`scripts\setup-windows.ps1 -Cuda` first for a faster engine.
+Have an NVIDIA GPU? Run `scripts\setup-windows.ps1 -Cuda` once for a faster engine.
 
 > The Windows edition is brand new. If something looks off, please [open an issue](../../issues): it really helps.
 

@@ -19,7 +19,9 @@ PipDictee/
 │   ├── Cargo.toml, build.rs     build.rs embeds the icon in the .exe (on Windows)
 │   ├── ui/ui.html               every window's interface: pill, panel, settings, setup (open it in a browser
 │   │                            with #gallery&lang=fr to see them all with sample data)
-│   ├── assets/                  tray and app icons, rendered from the macOS Pip (scripts/make-windows-assets.sh)
+│   ├── assets/                  tray and app icons, installer images, rendered from the macOS Pip
+│   │                            (scripts/make-windows-assets.sh)
+│   ├── installer/PipDictee.iss  the Inno Setup installer, built by CI → PipDictee-Setup-<version>.exe
 │   └── src/
 │       ├── main.rs
 │       ├── cleanup.rs           text clean-up (portable, unit-tested on every OS)

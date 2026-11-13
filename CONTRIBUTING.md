@@ -25,6 +25,10 @@ cd windows && cargo test
 python3 -m http.server 8765   # from the repository root, then open:
 #   http://127.0.0.1:8765/windows/ui/ui.html#gallery&lang=fr
 
+# Windows installer (on Windows, with Inno Setup 6 installed; CI does this on every push)
+#   cargo build --release
+#   iscc /DAppVersion=2.1.0 installer\PipDictee.iss      → target\installer\PipDictee-Setup-2.1.0.exe
+
 # Windows build from a Mac or Linux (type-check only)
 rustup target add x86_64-pc-windows-msvc && cargo check --target x86_64-pc-windows-msvc
 ```

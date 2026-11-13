@@ -90,4 +90,39 @@ func renderWindowsAssets(to dir: String) {
         })
     }
     for px in [16, 24, 32, 48, 64, 128, 256] { save("icon-\(px)", px, AppIconView(small: px < 64)) }
+
+    // Installer wizard (Inno Setup): the tall side image and the small header image, at 100 % and 200 %.
+    // Opaque backgrounds: the installer shows them as plain bitmaps.
+    func saveRect<V: View>(_ name: String, _ w: Int, _ h: Int, _ view: V) {
+        let r = ImageRenderer(content: view.frame(width: CGFloat(w), height: CGFloat(h)))
+        r.scale = 1
+        guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else { print("could not render \(name)"); exit(1) }
+        try? png.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name + ".png"))
+    }
+    for (suffix, k) in [("", 1.0), ("-2x", 2.0)] {
+        saveRect("wizard\(suffix)", Int(164 * k), Int(314 * k), WizardSideImage().scaleEffect(k).frame(width: 164 * k, height: 314 * k))
+        saveRect("wizard-small\(suffix)", Int(55 * k), Int(58 * k),
+                 ZStack { Color.white; PipView(mood: .happy).padding(6 * k) })
+    }
+}
+
+/// The installer's side image: Pip, happy, on Pip's ink with the two coral sound arcs.
+struct WizardSideImage: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(hex: 0x2A2346), Color.pipInk], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [Color(hex: 0x4A2E4A).opacity(0.9), .clear], center: UnitPoint(x: 0.5, y: 0.38), startRadius: 0, endRadius: 120)
+            VStack(spacing: 14) {
+                HStack(spacing: 6) {
+                    PipView(mood: .happy).frame(width: 96)
+                    SoundArcs().frame(width: 20, height: 46)
+                }
+                .offset(x: 8)
+                Text("Pip Dictée").font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(.white)
+            }
+            .offset(y: -20)
+        }
+        .frame(width: 164, height: 314)
+    }
 }
