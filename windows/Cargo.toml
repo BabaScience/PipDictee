@@ -20,7 +20,7 @@ dirs = "5"
 sys-locale = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-cpal = "0.15"
+cpal = "0.18"
 hound = "3.5"
 ureq = { version = "2", default-features = false, features = ["native-tls"] }
 native-tls = "0.2"
