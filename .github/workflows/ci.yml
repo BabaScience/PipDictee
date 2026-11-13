@@ -13,7 +13,7 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: gitleaks
@@ -31,7 +31,7 @@ jobs:
     name: Translations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Every string translated in every language
         run: python3 scripts/i18n.py
 
@@ -39,12 +39,12 @@ jobs:
     name: macOS app
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build (ad hoc signature)
         run: ./macos/build.sh
       - name: Clean-up cases
         run: '"macos/build/Pip Dictée.app/Contents/MacOS/PipDictee" --test-cleanup shared/cleanup-cases.json'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PipDictee-macos
           path: macos/build/
@@ -56,12 +56,12 @@ jobs:
       run:
         working-directory: windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tests (shared clean-up cases)
         run: cargo test --locked
       - name: Build
         run: cargo build --release --locked
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PipDictee-windows
           path: windows/target/release/PipDictee.exe
