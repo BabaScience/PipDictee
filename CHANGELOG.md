@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+**Windows**
+- Fixed: every dictation came back empty. whisper.cpp crashed while opening the model because the folder path
+  contains an accent ("Pip Dictée", or a user name like "José"). It now runs inside the models folder with plain
+  file names.
+- The log now says why the speech engine stopped (exit code), notices within seconds if it can't start, and no
+  longer restarts it in a loop.
+
 ## 2.1.0 — first open-source release
 
 **Both apps**

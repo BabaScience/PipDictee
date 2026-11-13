@@ -122,6 +122,7 @@ pub fn run() {
     }
     store::ensure_dictionary();
     audio::remove_leftovers();
+    super::whisper::remove_leftovers();
     let settings = store::load_settings();
     i18n::set_language(&settings.ui_language);
     hook::set_trigger(settings.trigger);
