@@ -1,11 +1,11 @@
 ﻿; Pip Dictée — Windows installer (Inno Setup 6). Built by CI (.github/workflows/ci.yml and release.yml):
-;   iscc /DAppVersion=2.1.0 windows\installer\PipDictee.iss    → windows\target\installer\PipDictee-Setup-2.1.0.exe
+;   iscc /DAppVersion=2.2.0 windows\installer\PipDictee.iss    → windows\target\installer\PipDictee-Setup-2.2.0.exe
 ; Per-user install, no administrator rights: the app goes to %LOCALAPPDATA%\Programs\Pip Dictée, next to the data
 ; it already keeps in %APPDATA% and %LOCALAPPDATA%. Six languages, the same as the app.
 ; This file is UTF-8 with a byte-order mark (Inno Setup needs it for the "é").
 
 #ifndef AppVersion
-  #define AppVersion "2.1.0"
+  #define AppVersion "2.2.0"
 #endif
 #define AppName "Pip Dictée"
 #define AppExe "PipDictee.exe"

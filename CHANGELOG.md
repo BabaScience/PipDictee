@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 2.2.0 — 2026-11-17
+
+**Both apps**
+- `skills/install-pip-dictee`: a skill that lets an AI agent (Claude Code, Claude Desktop) install Pip, check it
+  and walk you through setup.
 
 **Windows**
 - Fixed: every dictation came back empty. whisper.cpp crashed while opening the model because the folder path

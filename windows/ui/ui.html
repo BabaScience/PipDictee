@@ -523,7 +523,7 @@ setInterval(() => { if (pip.view === "pill" && pillStart && !updatePillLive(pip.
 function sample() {
   const now = Date.now(), iso = ms => new Date(now - ms).toISOString();
   return {
-    mode: "idle", whisperReady: true, hasWhisper: true, hasModel: true, version: "2.1", openAtLogin: false,
+    mode: "idle", whisperReady: true, hasWhisper: true, hasModel: true, version: "2.2", openAtLogin: false,
     model: "small", modelMs: 2600, recommended: "small",
     models: [{ id: "large", size: "1.5 GB", cost: 38 }, { id: "small", size: "252 MB", cost: 6 }, { id: "base", size: "77 MB", cost: 1 }],
     settings: { trigger: "CtrlWin", lang: "auto", ui_language: "system", auto_paste: true, remove_fillers: true, sounds: true, keep_history: true },
