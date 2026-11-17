@@ -93,6 +93,16 @@ cargo build --release                            # needs Rust: https://rustup.rs
 
 Have an NVIDIA GPU? Run `scripts\setup-windows.ps1 -Cuda` once for a faster engine.
 
+### Let an AI agent install it
+
+[`skills/install-pip-dictee`](skills/install-pip-dictee/SKILL.md) is a skill that lets an AI agent with access to
+your computer (Claude Code, or Claude Desktop) install Pip, run its checks and walk you through setup. It asks
+before downloading anything and leaves the microphone and permissions to you.
+
+- **Claude Code**: copy the `install-pip-dictee` folder into `~/.claude/skills/`, then ask *"install Pip Dictée"*.
+- **Claude Desktop / claude.ai**: zip the `install-pip-dictee` folder and upload it in **Settings › Capabilities ›
+  Skills**.
+
 > The Windows edition is brand new. If something looks off, please [open an issue](../../issues): it really helps.
 
 ## Shortcuts
