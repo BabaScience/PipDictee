@@ -10,12 +10,51 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-pub const MODEL_FILE: &str = "ggml-large-v3-turbo.bin";
 pub const VAD_FILE: &str = "ggml-silero-v5.1.2.bin";
+
+/// A Whisper model Pip can use. `cost` is how much work its encoder does compared with `base` (measured on a
+/// laptop CPU with whisper-bench: base 0.8 s, small 4.6 s, large-v3-turbo about 30 s), so one speed test with any
+/// model predicts the others.
+pub struct ModelSpec {
+    pub id: &'static str,
+    pub file: &'static str,
+    pub url: &'static str,
+    pub sha256: &'static str,
+    pub bytes: u64,
+    pub cost: f64,
+}
+
+/// Most accurate first. The quantized (q8_0) small and base models are nearly as accurate as the full ones and
+/// faster on a CPU; large-v3-turbo stays full precision, since the computers fast enough for it have a GPU.
+pub const MODELS: &[ModelSpec] = &[
+    ModelSpec { id: "large", file: "ggml-large-v3-turbo.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+        sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69", bytes: 1_624_555_275, cost: 38.0 },
+    ModelSpec { id: "small", file: "ggml-small-q8_0.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin",
+        sha256: "49c8fb02b65e6049d5fa6c04f81f53b867b5ec9540406812c643f177317f779f", bytes: 264_464_607, cost: 6.0 },
+    ModelSpec { id: "base", file: "ggml-base-q8_0.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q8_0.bin",
+        sha256: "c577b9a86e7e048a0b7eada054f4dd79a56bbfa911fbdacf900ac5b567cbb7d9", bytes: 81_768_585, cost: 1.0 },
+];
+
+pub fn model_by_id(id: &str) -> Option<&'static ModelSpec> { MODELS.iter().find(|m| m.id == id) }
+pub fn model_installed(m: &ModelSpec) -> bool { models_dir().join(m.file).is_file() }
+
+/// The model in use: the one the speed test chose if it's on disk, otherwise the most accurate one on disk (so
+/// installs from before the speed test keep large-v3-turbo). None until a model is downloaded.
+pub fn active_model() -> Option<&'static ModelSpec> {
+    model_by_id(&load_settings().model).filter(|m| model_installed(m))
+        .or_else(|| MODELS.iter().find(|m| model_installed(m)))
+}
+
+/// large-v3-turbo's encoder converted for OpenVINO (Intel graphics); whisper.cpp finds it next to the model by
+/// this name, and keeps its compiled form for the GPU in the "-cache" folder beside it.
+pub const OV_ENCODER: [&str; 2] = ["ggml-large-v3-turbo-encoder-openvino.xml", "ggml-large-v3-turbo-encoder-openvino.bin"];
+pub const OV_CACHE: &str = "ggml-large-v3-turbo-encoder-openvino-cache";
 
 pub fn data_dir() -> PathBuf { dirs::data_dir().unwrap_or_else(std::env::temp_dir).join("Pip Dictée") }
 pub fn models_dir() -> PathBuf { dirs::data_local_dir().unwrap_or_else(std::env::temp_dir).join("Pip Dictée").join("models") }
-pub fn model_path() -> PathBuf { models_dir().join(MODEL_FILE) }
 pub fn dictionary_path() -> PathBuf { data_dir().join("dictionary.json") }
 pub fn history_path() -> PathBuf { data_dir().join("history.json") }
 pub fn settings_path() -> PathBuf { data_dir().join("settings.json") }
@@ -103,12 +142,31 @@ pub struct Settings {
     /// "system" or a language code from shared/i18n.
     pub ui_language: String,
     pub onboarding_done: bool,
+    /// The model the speed test chose ("large", "small", "base"); empty before the first test.
+    pub model: String,
+    /// The speed test's prediction for the model in use, in milliseconds per 30 s of speech (0: not tested).
+    pub model_ms: u64,
+    /// The model the last speed test chose, which the settings mark as recommended; the user may pick another.
+    pub recommended: String,
+    /// How large-v3-turbo runs: "openvino" (Intel graphics, timed faster than the processor), "cpu" (tried, and
+    /// OpenVINO wasn't faster or failed), or empty (not tried yet).
+    pub accel: String,
+    /// OpenVINO's time for 30 s of speech with large-v3-turbo, in milliseconds (0: unknown).
+    pub accel_ms: u64,
 }
 impl Default for Settings {
     fn default() -> Self {
-        Settings { lang: "auto".into(), trigger: Trigger::CtrlWin, auto_paste: true, sounds: true, remove_fillers: true, keep_history: true,
-                   ui_language: "system".into(), onboarding_done: false }
+        Settings { lang: default_dictation_language(), trigger: Trigger::CtrlWin, auto_paste: true, sounds: true, remove_fillers: true,
+                   keep_history: true, ui_language: "system".into(), onboarding_done: false, model: String::new(), model_ms: 0,
+                   recommended: String::new(), accel: String::new(), accel_ms: 0 }
     }
+}
+
+/// Windows' display language when Pip knows it, else "auto". Detecting the language costs Whisper a second pass
+/// over the audio, which makes every dictation about twice as slow.
+fn default_dictation_language() -> String {
+    let sys = crate::i18n::system_language();
+    if LANGUAGES.iter().any(|(c, _)| *c == sys) { sys } else { "auto".into() }
 }
 pub fn load_settings() -> Settings {
     fs::read(settings_path()).ok().and_then(|d| serde_json::from_slice(&d).ok()).unwrap_or_default()

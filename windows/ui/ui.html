@@ -318,6 +318,30 @@ function srow(title, detail, ...right) {
 function header(title, sub, ...right) {
   return h("div", { class: "row", style: "align-items:flex-start" }, h("div", { class: "col grow", style: "gap:4px" }, h("h1", { style: "font-size:28px" }, title), h("span", { class: "soft", style: "font-size:14.5px" }, sub)), ...right);
 }
+/** Settings › General: which Whisper model, with each one's size, its expected time on this PC (from the last
+ *  speed test) and the speed test's recommendation. Picking one downloads it if needed, with progress here. */
+function modelRow(s) {
+  const names = { large: t("Accurate"), small: t("Balanced"), base: t("Fast") }, models = s.models || [], rec = s.recommended;
+  const current = models.find(m => m.id === s.model), perCost = s.modelMs && current ? s.modelMs / current.cost : 0;
+  const ms = m => m.id === "large" && s.openvinoMs ? s.openvinoMs : perCost * m.cost;
+  const options = models.map(m => [m.id, [names[m.id] || m.id, m.size,
+    ms(m) ? t("about %@ s", String(Math.max(1, Math.round(ms(m) / 1000)))) : null,
+    m.id === rec ? t("recommended") : null].filter(Boolean).join(" · ")]);
+  const dl = s.download || {}, busy = ["downloading", "verifying", "testing"].includes(dl.state);
+  let detail;
+  if (dl.state === "testing") detail = t("Testing this PC's speed…");
+  else if (busy) detail = t("Downloading the voice model…") + " " + Math.round((dl.progress || 0) * 100) + " %";
+  else if (dl.state === "failed") detail = dl.error || "";
+  else if (rec && s.model && s.model !== rec) detail = t("Chosen by you. The speed test recommends %@.", names[rec] || rec);
+  else if (s.modelMs) detail = t("%@ · chosen for this PC by a speed test.", names[s.model] || "—");
+  else detail = t("%@ · not tested on this PC yet.", names[s.model] || "—");
+  if (!busy && s.model === "large" && s.openvinoMs) detail += " " + t("Sped up by the Intel graphics (OpenVINO).");
+  const select = selectEl("s-model", options, s.model || "", v => pip.send("setModel", { id: v }), t("Voice model"));
+  select.disabled = busy;
+  const retest = btn(t("Test speed again"), () => pip.send("retest"), "btn secondary");
+  retest.disabled = busy;
+  return srow(t("Voice model"), detail, select, retest);
+}
 function viewSettings(s) {
   const tab = s.tab || "general", st = s.settings || {};
   const set = (key, value) => pip.send("set", { key, value });
@@ -328,7 +352,8 @@ function viewSettings(s) {
         h("div", { class: "seg" }, [["CtrlWin", "Ctrl + Win"], ["RightCtrl", t("Right Ctrl")]].map(([v, n]) => h("button", { type: "button", "aria-pressed": String(st.trigger === v), onclick: () => set("trigger", v) }, n)))),
       h("div", { class: "card" },
         srow(t("App language"), t("The language of Pip Dictée's menus and windows."), selectEl("s-ui", uiLanguages(), st.ui_language || "system", v => set("ui_language", v), t("App language"))),
-        srow(t("Dictation language"), t("Automatic recognises English, French, German, Italian, Spanish, Portuguese and many more."), selectEl("s-lang", dictationLanguages(), st.lang || "auto", v => set("lang", v), t("Dictation language"))),
+        srow(t("Dictation language"), t("Choosing your language makes dictation about twice as fast. Automatic recognises English, French, German, Italian, Spanish, Portuguese and many more."), selectEl("s-lang", dictationLanguages(), st.lang || "auto", v => set("lang", v), t("Dictation language"))),
+        modelRow(s),
         srow(t("Paste automatically"), t("Types the text where your cursor is. Off: it's only copied."), sw(st.auto_paste, v => set("auto_paste", v), t("Paste automatically"))),
         srow(t("Remove filler words"), t("um, uh, euh, äh"), sw(st.remove_fillers, v => set("remove_fillers", v), t("Remove filler words"))),
         srow(t("Sounds"), t("A soft tick when Pip starts and stops listening."), sw(st.sounds, v => set("sounds", v), t("Sounds"))),
@@ -425,13 +450,14 @@ function viewSetup(s) {
         h("div", { class: "row soft", style: "font-weight:700;font-size:13px" }, h("span", { class: "grow" }, t("%@ of %@", dl.done || "", dl.total || "")), h("span", {}, pct + " %")),
         h("span", { class: "muted", style: "font-size:12.5px" }, t("Checked with SHA-256 before I use it.")));
       action = btn(t("Cancel"), () => pip.send("cancelDownload"), "btn secondary fill");
-    } else if (dl.state === "verifying") { status = h("span", { class: "soft", style: "font-weight:700" }, t("Checking the file…")); action = btn(t("Checking the file…"), null, "btn secondary fill"); action.disabled = true; }
+    } else if (dl.state === "testing") { status = h("span", { class: "soft", style: "font-weight:700" }, t("Testing this PC's speed…")); action = btn(t("Testing this PC's speed…"), null, "btn secondary fill"); action.disabled = true; }
+    else if (dl.state === "verifying") { status = h("span", { class: "soft", style: "font-weight:700" }, t("Checking the file…")); action = btn(t("Checking the file…"), null, "btn secondary fill"); action.disabled = true; }
     else {
       status = dl.state === "failed" ? h("span", { style: "color:var(--sun-text);font-weight:700;font-size:13.5px" }, dl.error || "") : h("span", { class: "muted", style: "font-size:13px" }, t("Checked with SHA-256 before I use it."));
-      action = btn(dl.state === "failed" ? t("Try again") : t("Download (1.6 GB)"), () => pip.send("download"), "btn fill");
+      action = btn(dl.state === "failed" ? t("Try again") : t("Download"), () => pip.send("download"), "btn fill");
     }
     body = [hero(ready || dl.state === "done" ? "happy" : "thinking"), ...title(ready || dl.state === "done" ? t("Got my ears") : t("Getting my ears"),
-      t("I download whisper.cpp and the Whisper model once (1.6 GB). After that I work offline, forever.")), status, h("div", { class: "spacer" }), action];
+      t("I download whisper.cpp and the Whisper model that suits this PC best, once. After that I work offline, forever.")), status, h("div", { class: "spacer" }), action];
   } else {
     const first = (s.history || [])[0];
     if (pip.practiceStep !== 3) { pip.practiceStep = 3; pip.practiceSince = first ? first.at : null; }
@@ -475,6 +501,8 @@ function sample() {
   const now = Date.now(), iso = ms => new Date(now - ms).toISOString();
   return {
     mode: "idle", whisperReady: true, hasWhisper: true, hasModel: true, version: "2.1", openAtLogin: false,
+    model: "small", modelMs: 2600, recommended: "small",
+    models: [{ id: "large", size: "1.5 GB", cost: 38 }, { id: "small", size: "252 MB", cost: 6 }, { id: "base", size: "77 MB", cost: 1 }],
     settings: { trigger: "CtrlWin", lang: "auto", ui_language: "system", auto_paste: true, remove_fillers: true, sounds: true, keep_history: true },
     history: [{ text: "Thanks for the notes on the intro. I agree the first ten seconds drag.", at: iso(120000), app: "Outlook" },
       { text: "Can we move the call to 4 pm? I'm stuck in a review.", at: iso(1080000), app: "Teams" },

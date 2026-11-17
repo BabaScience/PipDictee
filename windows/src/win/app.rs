@@ -50,7 +50,9 @@ pub enum UiEvent {
     Tray(TrayIconEvent),
     Menu(MenuId),
     Download(Value),
-    DownloadDone(Result<(), String>),
+    /// Setup finished: the chosen model's id, its predicted milliseconds for 30 s of speech, and whether a speed
+    /// test chose it; or why not.
+    DownloadDone(Result<(&'static str, u64, bool, setup::Accel), String>),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -68,7 +70,7 @@ fn mode_name(m: Mode) -> &'static str {
     match m { Mode::Idle => "idle", Mode::Holding => "holding", Mode::HandsFree => "handsFree", Mode::Working => "working" }
 }
 fn has_whisper() -> bool { find_tool("whisper-server").is_some() || find_tool("whisper-cli").is_some() }
-fn has_model() -> bool { store::model_path().is_file() }
+fn has_model() -> bool { store::active_model().is_some() }
 fn is_live(pill: &Option<Value>) -> bool {
     pill.as_ref().and_then(|s| s["kind"].as_str()).map_or(false, |k| k == "listening" || k == "handsFree")
 }
@@ -183,6 +185,13 @@ pub fn run() {
                 ui.create(target, View::Panel);
                 let done = ui.shared.settings.lock().unwrap().onboarding_done;
                 if !done || !has_whisper() || !has_model() { ui.open(target, View::Setup); }
+                // Already on large-v3-turbo with Intel graphics, from before OpenVINO: try it once, in the
+                // background (the settings show the progress). Dictation keeps working on the processor meanwhile.
+                else if store::active_model().is_some_and(|m| m.id == "large")
+                    && ui.shared.settings.lock().unwrap().accel.is_empty() && setup::intel_gpu() {
+                    store::log("large-v3-turbo with Intel graphics: trying OpenVINO");
+                    ui.start_download(setup::Goal::Setup);
+                }
             }
             TaoEvent::UserEvent(e) => ui.handle(target, e, control_flow),
             TaoEvent::WindowEvent { window_id, event, .. } => {
@@ -300,6 +309,15 @@ impl Ui {
             "strings": i18n::table(), "locale": i18n::current(), "settings": s, "trigger": s.trigger,
             "mode": mode_name(self.mode), "whisperReady": self.whisper_ready, "hasWhisper": has_whisper(), "hasModel": has_model(),
             "version": env!("CARGO_PKG_VERSION"),
+            "model": store::active_model().map(|m| m.id), "modelMs": s.model_ms,
+            // large-v3-turbo on the Intel graphics: its own measured time.
+            "openvinoMs": if s.accel == "openvino" && setup::openvino_installed() { s.accel_ms } else { 0 },
+            // Before "recommended" was saved, the speed test's choice was simply the model in use.
+            "recommended": if s.recommended.is_empty() && s.model_ms > 0 { &s.model } else { &s.recommended },
+            "models": store::MODELS.iter().map(|m| json!({
+                "id": m.id, "size": setup::size(m.bytes), "cost": m.cost, "installed": store::model_installed(m),
+            })).collect::<Vec<_>>(),
+            "download": self.download,
         });
         match view {
             View::Pill => { v["pill"] = self.pill.clone().unwrap_or(Value::Null); v["levels"] = json!(self.levels); }
@@ -314,7 +332,6 @@ impl Ui {
                 v["step"] = json!(self.step);
                 v["history"] = json!(history.iter().take(1).collect::<Vec<_>>());
                 v["mic"] = json!({ "heard": self.heard, "quiet": self.quiet, "name": self.mic_name, "levels": self.levels });
-                v["download"] = self.download.clone();
             }
         }
         v
@@ -454,10 +471,33 @@ impl Ui {
                 if id == *self.menu_quit.id() { self.quit(control_flow); }
                 else if id == *self.menu_settings.id() { self.tab = "general".into(); self.open(target, View::Settings); }
             }
-            UiEvent::Download(v) => { self.download = v; self.push(View::Setup); }
+            UiEvent::Download(v) => { self.download = v; self.push(View::Setup); self.push(View::Settings); }
             UiEvent::DownloadDone(r) => {
                 self.download = match r {
-                    Ok(()) => { self.whisper.start(); json!({ "state": "done" }) }
+                    Ok((id, ms, tested, accel)) => {
+                        let changed = {
+                            let mut s = self.shared.settings.lock().unwrap();
+                            let before = (s.model.clone(), s.accel.clone());
+                            s.model = id.into();
+                            s.model_ms = ms;
+                            if tested { s.recommended = id.into(); }
+                            match accel {
+                                setup::Accel::Unchanged => {}
+                                setup::Accel::Cpu => { s.accel = "cpu".into(); s.accel_ms = 0; }
+                                setup::Accel::OpenVino(ms) => { s.accel = "openvino".into(); s.accel_ms = ms; }
+                            }
+                            let changed = before != (s.model.clone(), s.accel.clone());
+                            store::save_settings(&s);
+                            changed
+                        };
+                        // A new model (or engine): restart the engine with it. After a speed test, delete the other models
+                        // (only possible once the engine no longer has them open); a model picked by hand keeps the
+                        // previous one, so switching back is instant.
+                        if changed { self.whisper.stop(); }
+                        if let (true, Some(m)) = (tested, store::model_by_id(id)) { setup::remove_other_models(m); }
+                        self.whisper.start();
+                        json!({ "state": "done" })
+                    }
                     Err(e) if e == "cancelled" => json!({ "state": "idle" }),
                     Err(e) => json!({ "state": "failed", "error": e }),
                 };
@@ -510,7 +550,18 @@ impl Ui {
                 let _ = std::process::Command::new("explorer.exe").arg(what).spawn();
             }
             "step" => if view == View::Setup { self.set_step(m["step"].as_u64().unwrap_or(0) as u32) },
-            "download" => self.start_download(),
+            "download" => self.start_download(setup::Goal::Setup),
+            "retest" => {
+                self.hide_panel();
+                self.open(target, View::Setup);
+                self.set_step(2);
+                self.start_download(setup::Goal::Retest);
+            }
+            // A model picked in the settings: downloaded there if needed (with its progress), then used.
+            "setModel" => {
+                let Some(m) = m["id"].as_str().and_then(store::model_by_id) else { return };
+                if store::active_model().map(|a| a.id) != Some(m.id) { self.start_download(setup::Goal::Switch(m)); }
+            }
             "cancelDownload" => self.cancel.store(true, Relaxed),
             "setupDone" => {
                 {
@@ -525,21 +576,23 @@ impl Ui {
         }
     }
 
-    fn start_download(&mut self) {
-        if matches!(self.download["state"].as_str(), Some("downloading" | "verifying")) { return; }
+    fn start_download(&mut self, goal: setup::Goal) {
+        if matches!(self.download["state"].as_str(), Some("downloading" | "verifying" | "testing")) { return; }
         self.cancel.store(false, Relaxed);
         self.download = json!({ "state": "downloading", "stage": "engine", "progress": 0.0 });
         self.push(View::Setup);
+        self.push(View::Settings);
         let (cancel, p) = (self.cancel.clone(), Mutex::new(self.proxy.clone()));
         std::thread::spawn(move || {
-            let r = setup::run(cancel, |stage, done, total| {
-                let state = if total > 0 && done >= total { "verifying" } else { "downloading" };
+            let r = setup::run(cancel, goal, |stage, done, total| {
+                let state = if stage == setup::Stage::SpeedTest { "testing" }
+                    else if total > 0 && done >= total { "verifying" } else { "downloading" };
                 let _ = p.lock().unwrap().send_event(UiEvent::Download(json!({
                     "state": state, "stage": stage.key(), "progress": done as f64 / total.max(1) as f64,
                     "done": setup::size(done), "total": setup::size(total),
                 })));
             });
-            let _ = p.lock().unwrap().send_event(UiEvent::DownloadDone(r));
+            let _ = p.lock().unwrap().send_event(UiEvent::DownloadDone(r.map(|c| (c.model.id, c.ms, c.tested, c.accel))));
         });
     }
 

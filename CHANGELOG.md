@@ -8,6 +8,21 @@
   file names.
 - The log now says why the speech engine stopped (exit code), notices within seconds if it can't start, and no
   longer restarts it in a loop.
+- A speed test picks the voice model for each PC: Pip times this computer and keeps the most accurate model that
+  stays quick (large-v3-turbo on a fast PC or a GPU, a smaller one on a laptop running on its processor alone).
+- Settings › General › Voice model: choose Accurate (large-v3-turbo, 1.5 GB), Balanced (small, 252 MB) or Fast
+  (base, 77 MB), with each one's expected time on this PC and the speed test's recommendation. A model picked by
+  hand is downloaded there and the previous one is kept, so switching back is instant. "Test speed again" re-runs
+  the test.
+- Intel graphics: with the Accurate model, Pip downloads an OpenVINO build of whisper.cpp and the model's encoder
+  (1.3 GB, checked with SHA-256), times it, and uses it if it beats the processor. On a Core Ultra 7 laptop,
+  dictations went from about 31 s to between 4 and 12 s, with the same text. If it fails to start, Pip goes back to
+  the processor. The files are built by `scripts/build-openvino-windows.ps1`.
+- Faster on the processor too: the engine uses the processor's fast cores only (performance cores on Intel's
+  hybrid chips), and the dictation language now defaults to Windows' language instead of automatic detection,
+  which made every dictation about twice as slow.
+- A dictation made while the engine restarts (after a model change) waits for it instead of falling back to the
+  much slower one-shot mode.
 
 ## 2.1.0 — first open-source release
 

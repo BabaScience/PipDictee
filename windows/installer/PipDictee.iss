@@ -65,27 +65,27 @@ Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortugue
 english.StartupGroup=When Windows starts:
 english.AutostartTask=Open Pip Dictée when I sign in
 english.WebView2Missing=Pip Dictée needs Microsoft Edge WebView2, which isn't installed on this PC.%n%nOpen the download page now? Install it, then run this setup again.
-english.DeleteDataQuestion=Also delete your Pip Dictée data?%n%nThis removes your dictionary, your dictation history and the downloaded voice model (about 1.6 GB).%n%nChoose No to keep them for a later reinstall.
+english.DeleteDataQuestion=Also delete your Pip Dictée data?%n%nThis removes your dictionary, your dictation history and the downloaded voice model (up to about 3 GB).%n%nChoose No to keep them for a later reinstall.
 french.StartupGroup=Au démarrage de Windows :
 french.AutostartTask=Ouvrir Pip Dictée à la connexion
 french.WebView2Missing=Pip Dictée a besoin de Microsoft Edge WebView2, qui n'est pas installé sur ce PC.%n%nOuvrir la page de téléchargement maintenant ? Installe-le, puis relance cette installation.
-french.DeleteDataQuestion=Supprimer aussi tes données Pip Dictée ?%n%nCela efface ton dictionnaire, ton historique de dictées et le modèle vocal téléchargé (environ 1,6 Go).%n%nChoisis Non pour les garder en vue d'une réinstallation.
+french.DeleteDataQuestion=Supprimer aussi tes données Pip Dictée ?%n%nCela efface ton dictionnaire, ton historique de dictées et le modèle vocal téléchargé (jusqu'à environ 3 Go).%n%nChoisis Non pour les garder en vue d'une réinstallation.
 german.StartupGroup=Beim Start von Windows:
 german.AutostartTask=Pip Dictée beim Anmelden öffnen
 german.WebView2Missing=Pip Dictée braucht Microsoft Edge WebView2, das auf diesem PC nicht installiert ist.%n%nDie Download-Seite jetzt öffnen? Installiere es und starte dann diese Installation erneut.
-german.DeleteDataQuestion=Auch deine Pip-Dictée-Daten löschen?%n%nDas entfernt dein Wörterbuch, deinen Diktatverlauf und das geladene Sprachmodell (etwa 1,6 GB).%n%nWähle Nein, um sie für eine spätere Neuinstallation zu behalten.
+german.DeleteDataQuestion=Auch deine Pip-Dictée-Daten löschen?%n%nDas entfernt dein Wörterbuch, deinen Diktatverlauf und das geladene Sprachmodell (bis zu etwa 3 GB).%n%nWähle Nein, um sie für eine spätere Neuinstallation zu behalten.
 italian.StartupGroup=All'avvio di Windows:
 italian.AutostartTask=Apri Pip Dictée all'accesso
 italian.WebView2Missing=Pip Dictée ha bisogno di Microsoft Edge WebView2, che non è installato su questo PC.%n%nAprire ora la pagina di download? Installalo, poi riavvia questa installazione.
-italian.DeleteDataQuestion=Eliminare anche i tuoi dati di Pip Dictée?%n%nVerranno rimossi il dizionario, la cronologia delle dettature e il modello vocale scaricato (circa 1,6 GB).%n%nScegli No per conservarli per una futura reinstallazione.
+italian.DeleteDataQuestion=Eliminare anche i tuoi dati di Pip Dictée?%n%nVerranno rimossi il dizionario, la cronologia delle dettature e il modello vocale scaricato (fino a circa 3 GB).%n%nScegli No per conservarli per una futura reinstallazione.
 spanish.StartupGroup=Al iniciar Windows:
 spanish.AutostartTask=Abrir Pip Dictée al iniciar sesión
 spanish.WebView2Missing=Pip Dictée necesita Microsoft Edge WebView2, que no está instalado en este PC.%n%n¿Abrir ahora la página de descarga? Instálalo y vuelve a ejecutar esta instalación.
-spanish.DeleteDataQuestion=¿Borrar también tus datos de Pip Dictée?%n%nSe eliminarán tu diccionario, tu historial de dictados y el modelo de voz descargado (unos 1,6 GB).%n%nElige No para conservarlos para una futura reinstalación.
+spanish.DeleteDataQuestion=¿Borrar también tus datos de Pip Dictée?%n%nSe eliminarán tu diccionario, tu historial de dictados y el modelo de voz descargado (hasta unos 3 GB).%n%nElige No para conservarlos para una futura reinstalación.
 brazilianportuguese.StartupGroup=Quando o Windows iniciar:
 brazilianportuguese.AutostartTask=Abrir o Pip Dictée ao entrar
 brazilianportuguese.WebView2Missing=O Pip Dictée precisa do Microsoft Edge WebView2, que não está instalado neste PC.%n%nAbrir a página de download agora? Instale-o e execute esta instalação de novo.
-brazilianportuguese.DeleteDataQuestion=Apagar também seus dados do Pip Dictée?%n%nIsso remove seu dicionário, seu histórico de ditados e o modelo de voz baixado (cerca de 1,6 GB).%n%nEscolha Não para mantê-los para uma futura reinstalação.
+brazilianportuguese.DeleteDataQuestion=Apagar também seus dados do Pip Dictée?%n%nIsso remove seu dicionário, seu histórico de ditados e o modelo de voz baixado (até cerca de 3 GB).%n%nEscolha Não para mantê-los para uma futura reinstalação.
 
 [Tasks]
 Name: "autostart"; Description: "{cm:AutostartTask}"; GroupDescription: "{cm:StartupGroup}"

@@ -76,8 +76,9 @@ first dictation.
 2. Run it. No administrator rights needed: Pip installs for your user only, in your language, with a Start-menu
    shortcut and an option to open at sign-in. The installer isn't code-signed yet, so Windows may say *"Windows
    protected your PC"*: click **More info › Run anyway**.
-3. Pip greets you: microphone check, then whisper.cpp and the voice model (1.6 GB, checked with SHA-256), then a
-   first dictation.
+3. Pip greets you: microphone check, then whisper.cpp and a quick speed test that picks the voice model for your PC
+   (77 MB to 1.5 GB, each file checked with SHA-256), then a first dictation. On PCs with Intel graphics, the most
+   accurate model runs through OpenVINO, which made it several times faster in our tests.
 
 Pip lives in the notification area: click it for the panel, right-click for Settings and Quit. To remove it:
 **Settings › Apps › Pip Dictée › Uninstall** (it asks whether to keep your dictionary and the model).
@@ -148,17 +149,20 @@ The details, and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
 **Does it work offline?** Yes, once the model is downloaded.
 
-**How fast is it?** About a second for a sentence on an Apple Silicon Mac. On Windows it depends on your CPU; the
+**How fast is it?** About a second for a sentence on an Apple Silicon Mac. On Windows it depends on your PC: the
+speed test picks a model that stays quick, Intel graphics speed up the most accurate one through OpenVINO, and the
 CUDA build helps a lot on an NVIDIA GPU.
 
 **What do I need?** A Mac with macOS 14 or later (Apple Silicon recommended), or a Windows 10/11 PC, and about
-2 GB of free disk space for the model.
+2 GB of free disk space for the model (3 GB for the most accurate model on a PC with Intel graphics).
 
 **Pip says "I didn't hear anything".** The recording was too short or too quiet. Check the microphone selected in
 your system's sound settings; setup shows which one Pip is using.
 
-**Can I use another model?** Not from the settings yet: Pip uses Whisper `large-v3-turbo`. A smaller-model option
-would make a great first contribution.
+**Can I use another model?** On Windows, yes: **Settings › General › Voice model** offers Accurate
+(`large-v3-turbo`), Balanced (`small`) and Fast (`base`), with each one's expected time on your PC. The smaller
+models are quicker but make more mistakes, especially outside English. On macOS, Pip uses `large-v3-turbo`; a
+model option there would make a great first contribution.
 
 **Is this affiliated with Wispr Flow?** No. Pip Dictée is an independent project, inspired by push-to-talk
 dictation tools like Wispr Flow, and not affiliated with or endorsed by them.
