@@ -21,6 +21,8 @@
 - Faster on the processor too: the engine uses the processor's fast cores only (performance cores on Intel's
   hybrid chips), and the dictation language now defaults to Windows' language instead of automatic detection,
   which made every dictation about twice as slow.
+- Fixed: the pill blinked while listening. Each sound-level update rebuilt it, restarting its pop-in animation;
+  the bars and the timer are now updated in place.
 - A dictation made while the engine restarts (after a model change) waits for it instead of falling back to the
   much slower one-shot mode.
 

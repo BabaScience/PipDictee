@@ -56,7 +56,8 @@ select { border: 1px solid rgba(23,20,42,.14); border-radius: 10px; padding: 5px
 /* Pill */
 #pill-wrap { height: 100%; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; }
 .pill { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 18px 0 8px; border-radius: 29px; background: rgba(23,20,42,.92);
-  border: 1px solid rgba(255,255,255,.18); box-shadow: 0 10px 28px rgba(23,20,42,.35); color: #fff; animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
+  border: 1px solid rgba(255,255,255,.18); box-shadow: 0 10px 28px rgba(23,20,42,.35); color: #fff; }
+.pill.enter { animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
 .pill.small { height: 46px; padding-right: 16px; }
 .pill.amber { border: 2px solid var(--sun); box-shadow: 0 0 0 5px rgba(255,200,69,.25), 0 10px 28px rgba(23,20,42,.35); padding-right: 8px; }
 .pill .t { font-family: var(--title); font-weight: 600; font-size: 15px; white-space: nowrap; }
@@ -152,7 +153,14 @@ const pip = {
     const msg = JSON.stringify(Object.assign({ cmd }, args || {}));
     if (window.ipc) window.ipc.postMessage(msg); else console.log("ipc →", msg);
   },
-  update(patch) { Object.assign(pip.state, patch); if (patch.strings) pip.strings = patch.strings; render(); },
+  update(patch) {
+    Object.assign(pip.state, patch);
+    if (patch.strings) pip.strings = patch.strings;
+    // The pill's sound bars change about 16 times a second: update them in place. Rebuilding the pill each time
+    // restarted its animations, which made it blink.
+    if (pip.view === "pill" && Object.keys(patch).length === 1 && "levels" in patch && updatePillLive(pip.state)) return;
+    render();
+  },
 };
 window.pip = pip;
 
@@ -234,9 +242,24 @@ function dictationLanguages(short) {
 }
 
 // ---------- Pill ----------
-let pillStart = 0;
+let pillStart = 0, pillKind = null;
+const waveHeight = l => `${6 + 22 * Math.min(1, Math.max(0, l))}px`;
+const elapsed = () => { const e = pillStart ? Math.max(0, Math.floor((Date.now() - pillStart) / 1000)) : 0; return `${Math.floor(e / 60)}:${String(e % 60).padStart(2, "0")}`; };
+/** While listening: new sound levels and the timer, without rebuilding the pill. False if there's no live pill. */
+function updatePillLive(s) {
+  const bars = document.querySelectorAll("#root .pill .wave span");
+  if (!bars.length) return false;
+  const levels = (s.levels || []).slice(-bars.length);
+  bars.forEach((b, i) => { b.style.height = waveHeight(levels[i] || 0); });
+  const timer = document.querySelector("#root .pill .sub.timer");
+  if (timer) timer.textContent = elapsed();
+  return true;
+}
 function viewPill(s) {
   const p = s.pill;
+  // The pop-in animation plays when the pill appears or changes state, not on every update.
+  const enter = p && p.kind !== pillKind;
+  pillKind = p ? p.kind : null;
   if (!p) return h("div", { id: "pill-wrap" });
   const live = p.kind === "listening" || p.kind === "handsFree";
   const mood = { listening: "listening", handsFree: "listening", thinking: "thinking", typed: "happy", info: "happy", copied: "ready", oops: "oops", needsYou: "needsYou", cancelled: "resting" }[p.kind];
@@ -244,11 +267,11 @@ function viewPill(s) {
   const kids = [pipEl(mood, true, small ? 36 : 44, live ? "lean" : "")];
   if (live) {
     const levels = (s.levels || []).slice(-10);
-    kids.push(h("div", { class: "wave" }, levels.map(l => h("span", { style: `height:${6 + 22 * Math.min(1, Math.max(0, l))}px` }))));
+    kids.push(h("div", { class: "wave" }, levels.map(l => h("span", { style: `height:${waveHeight(l)}` }))));
     kids.push(h("span", { class: "t" }, p.kind === "handsFree" ? t("Hands-free") : t("Listening")));
     kids.push(h("span", { class: "grow" }));
     if (p.kind === "handsFree") kids.push(h("span", { class: "sub" }, "🔒 " + t("%@ to finish", shortcutName(s.trigger))));
-    else { const e = pillStart ? Math.max(0, Math.floor((Date.now() - pillStart) / 1000)) : 0; kids.push(h("span", { class: "sub" }, `${Math.floor(e / 60)}:${String(e % 60).padStart(2, "0")}`)); }
+    else kids.push(h("span", { class: "sub timer" }, elapsed()));
   } else if (p.kind === "thinking") {
     kids.push(h("span", { class: "t" }, t("Writing it down")), h("span", { class: "dots" }, h("span"), h("span"), h("span")));
   } else if (p.kind === "typed") {
@@ -262,7 +285,7 @@ function viewPill(s) {
   } else {
     kids.push(h("span", { class: "t" }, p.message || ""));
   }
-  return h("div", { id: "pill-wrap" }, h("div", { class: "pill" + (small ? " small" : "") + (p.kind === "needsYou" ? " amber" : "") }, kids));
+  return h("div", { id: "pill-wrap" }, h("div", { class: "pill" + (enter ? " enter" : "") + (small ? " small" : "") + (p.kind === "needsYou" ? " amber" : "") }, kids));
 }
 
 // ---------- Panel ----------
@@ -494,7 +517,7 @@ function render() {
   }
 }
 // The pill's timer ticks without the Rust side having to send anything.
-setInterval(() => { if (pip.view === "pill" && pillStart) render(); }, 1000);
+setInterval(() => { if (pip.view === "pill" && pillStart && !updatePillLive(pip.state)) render(); }, 1000);
 
 // ---------- Browser preview: every screen with sample data (never used inside the app) ----------
 function sample() {
