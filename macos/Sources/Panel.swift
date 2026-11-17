@@ -13,6 +13,7 @@ struct PanelView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             if let need = model.need { needCard(need) }
+            if let v = model.update { updateCard(v) }
             shortcutCard
             recent
             Divider().overlay(Color.pipLine)
@@ -94,6 +95,17 @@ struct PanelView: View {
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(hex: 0xFFF8E1)))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.pipSun.opacity(0.6)))
+    }
+
+    func updateCard(_ version: String) -> some View {
+        HStack(spacing: 10) {
+            Text(L("Pip Dictée %@ is available", version)).font(.pipText(13.5, .bold)).fixedSize(horizontal: false, vertical: true)
+            Spacer()
+            Button(L("Download…")) { NSWorkspace.shared.open(latestReleasePage) }.buttonStyle(PipButtonStyle(kind: .primary))
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.85)))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.pipMint.opacity(0.7)))
     }
 
     var shortcutCard: some View {

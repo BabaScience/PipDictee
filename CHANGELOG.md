@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+**Both apps**
+- Fixed: words cut in two ("trans cribing", "l' analyse"). Whisper's server could split its text inside a word, and
+  the clean-up turned each split into a space. Pip now asks it to split between words only, and joins the pieces as
+  they are.
+- Paragraphs on their own: a new paragraph where a sentence ends and you paused for a second or more.
+- A better dictionary hint for Whisper: your newest words, written so it no longer joins sentences with commas, and
+  without entries that aren't words (like "@").
+- macOS: `PipDictee --transcribe file.wav` prints what Pip would type for a recording (for testing).
+- Update notifications: once a day Pip asks GitHub for the latest version number. When a newer one is out, the pill
+  says so once, and the panel, the tray menu (Windows) and Settings › About show a download link. Nothing is
+  downloaded or installed by itself. Off in Settings › Privacy › Check for updates; "Check now" in About.
+- Releases are published automatically when a version tag is pushed on `main` (no more drafts), with the notes
+  from this changelog, SHA-256 sums and a signed build provenance.
+
 ## 2.2.0 — 2026-11-17
 
 **Both apps**

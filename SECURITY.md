@@ -17,6 +17,9 @@ a week. Please include the steps to reproduce and the OS version.
   and, on macOS, Ollama if you turn on "Local AI clean-up") — with one exception, at setup: it downloads the voice
   model (and, on Windows, whisper.cpp) over HTTPS from Hugging Face and GitHub, checks each file's SHA-256, and
   never contacts them again. Nothing about you or your voice is sent: these are plain file downloads.
+- **Update check**: once a day, the app asks `api.github.com` for the latest release's version number (turn it off
+  in Settings › Privacy). The request carries no cookie, no identifier and nothing about you, only the user agent
+  `PipDictee`; GitHub sees your IP address, as with any visit.
 - **History** (last 200 dictations) and your **dictionary** are plain JSON files in your user data folder.
   On macOS the folder is `0700` and the files `0600`. You can turn history off or clear it from the menu.
 - **The log** records events, timings and lengths — never the words you said.
@@ -33,8 +36,9 @@ a week. Please include the steps to reproduce and the OS version.
 | Orphaned server holding the port | macOS kills a stale server at launch; Windows runs it in a Job Object that dies with the app. |
 | Code injection into the app | macOS: hardened runtime, only entitlement is `audio-input`. |
 | Other users on the same machine | Data folder is private (see above). The server listens on loopback only. |
-| A web page inside the app (Windows uses WebView2 for its windows) | The page is built into the .exe, with a strict Content-Security-Policy; navigation and new windows are refused; dictated text is only ever inserted as text, never as HTML; the page's messages are validated, and it can open only four fixed destinations (microphone settings, data folder, source code, issues). |
+| A web page inside the app (Windows uses WebView2 for its windows) | The page is built into the .exe, with a strict Content-Security-Policy; navigation and new windows are refused; dictated text is only ever inserted as text, never as HTML; the page's messages are validated, and it can open only five fixed destinations (microphone settings, data folder, source code, issues, latest release). |
 | Tampered downloads on first launch (Windows) | whisper.cpp and the models are downloaded over HTTPS only, with Windows' own TLS, checked against pinned SHA-256 before use; archives are unpacked by file name only. |
+| A fake or tampered update | The apps never download or run an update: they read only a version number (strictly `X.Y.Z`, drafts and pre-releases ignored) from `api.github.com` over HTTPS, and open a fixed release page, never a link from the answer. Releases are built by GitHub Actions only from tags on `main` whose version matches the apps; each file has a SHA-256 sum and a signed build provenance (`gh attestation verify <file> --repo BabaScience/PipDictee`). |
 | Secrets committed to the repo | `.gitignore` excludes user data, models, logs, signing config; `.githooks/pre-commit` and CI run gitleaks. |
 
 ## Known limitations

@@ -8,6 +8,7 @@
 mod cleanup;
 mod i18n;
 mod store;
+mod updates;
 #[cfg(windows)]
 mod win;
 

@@ -153,12 +153,20 @@ pub struct Settings {
     pub accel: String,
     /// OpenVINO's time for 30 s of speech with large-v3-turbo, in milliseconds (0: unknown).
     pub accel_ms: u64,
+    /// Once a day, ask GitHub for the latest version number (see updates.rs).
+    pub check_updates: bool,
+    /// When that last worked (Unix seconds), and the version it found.
+    pub last_update_check: i64,
+    pub latest_version: String,
+    /// The newest version the pill has already announced, so it says it once.
+    pub update_announced: String,
 }
 impl Default for Settings {
     fn default() -> Self {
         Settings { lang: default_dictation_language(), trigger: Trigger::CtrlWin, auto_paste: true, sounds: true, remove_fillers: true,
                    keep_history: true, ui_language: "system".into(), onboarding_done: false, model: String::new(), model_ms: 0,
-                   recommended: String::new(), accel: String::new(), accel_ms: 0 }
+                   recommended: String::new(), accel: String::new(), accel_ms: 0, check_updates: true, last_update_check: 0,
+                   latest_version: String::new(), update_announced: String::new() }
     }
 }
 

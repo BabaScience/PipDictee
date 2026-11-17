@@ -33,10 +33,25 @@ python3 -m http.server 8765   # from the repository root, then open:
 rustup target add x86_64-pc-windows-msvc && cargo check --target x86_64-pc-windows-msvc
 ```
 
+## Releasing
+
+1. Set the new version in `windows/Cargo.toml` (then `cargo check` to update `Cargo.lock`) and in `macos/Info.plist`
+   (`CFBundleShortVersionString` and `CFBundleVersion`).
+2. Rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z — YYYY-MM-DD`: that section becomes the release notes.
+3. Merge to `main`, then tag that commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+The **Release** workflow refuses a tag that isn't on `main` or doesn't match both versions, builds and tests both
+apps, and publishes the release with checksums and build provenance. Within a day, every copy of Pip with the update
+check on tells its user. A tag like `vX.Y.Z-beta.1` makes a pre-release, which the apps ignore.
+
+Protect release tags in the repository settings (Rules › Rulesets › New tag ruleset, target `v*`, restrict
+creation, update and deletion to admins), so only maintainers can trigger a release.
+
 ## Rules of the house
 
 - **Clean-up changes go in both apps** plus a case in `shared/cleanup-cases.json`, in the same pull request.
-- **Local only.** No network calls other than `127.0.0.1` without an issue to discuss it first.
+- **Local only.** No network calls other than `127.0.0.1` without an issue to discuss it first. (The two that
+  exist: the setup downloads, and the daily update check, which reads only a version number.)
 - **Never log or upload what the user said.** Lengths and timings are fine.
 - **No personal data in commits**: no history, dictionary, logs, models, signing identities or keys.
   The pre-commit hook and CI will refuse them.

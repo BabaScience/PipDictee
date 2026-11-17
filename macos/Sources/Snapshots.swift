@@ -51,6 +51,10 @@ func renderSnapshots(to dir: String) {
 
     save("panel", PanelView(model: model()).background(Color.white))
     save("panel-needs-you", PanelView(model: model(ax: false)).background(Color.white))
+    let withUpdate = model(); withUpdate.update = "2.3.0"
+    save("panel-update", PanelView(model: withUpdate).background(Color.white))
+    let aboutRouter = SettingsRouter(); aboutRouter.tab = .about
+    save("settings-about-update", SettingsView(model: withUpdate, router: aboutRouter, store: DictionaryStore(dict)))
 
     let router = SettingsRouter()
     for t in SettingsTab.allCases {

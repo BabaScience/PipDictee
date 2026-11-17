@@ -34,6 +34,30 @@ if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--render-windo
     exit(0)
 }
 
+// `PipDictee --transcribe <file.wav>`: what Pip would type for a recording (16 kHz mono WAV), with your dictionary
+// and settings. Uses the running app's whisper-server if there is one (it's left alone), whisper-cli otherwise.
+if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--transcribe" {
+    let url = URL(fileURLWithPath: CommandLine.arguments[2])
+    let w = Whisper()
+    var probe = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/")!, timeoutInterval: 1)
+    probe.httpMethod = "GET"
+    w.ready = syncRequest(probe)?.1.statusCode == 200
+    let dict = loadDictionary()
+    let raw = w.transcribe(url, lang: Settings.lang, prompt: whisperHint(dict.words)) ?? ""
+    print(clean(raw, dict: dict))
+    exit(raw.isEmpty ? 1 : 0)
+}
+
+// `PipDictee --check-update`: asks GitHub for the latest version, as the app does once a day.
+if CommandLine.arguments.count == 2, CommandLine.arguments[1] == "--check-update" {
+    fetchLatestVersion { v in
+        guard let v else { print("couldn't read the latest release"); exit(1) }
+        print("this is \(appVersion), latest is \(v): " + (isNewer(v, than: appVersion) ? "update available" : "up to date"))
+        exit(0)
+    }
+    RunLoop.main.run()
+}
+
 // `PipDictee --snapshot <folder>`: every screen as PNG, with sample data (see Snapshots.swift).
 // `PipDictee --snapshot <folder> fr` renders them in one language.
 if (3...4).contains(CommandLine.arguments.count), CommandLine.arguments[1] == "--snapshot" {

@@ -138,5 +138,17 @@
  {
   "input": "Ich gehe heute um acht Uhr nach Hause",
   "expected": "Ich gehe heute um acht Uhr nach Hause"
+ },
+ {
+  "input": " Je veux revoir les mathématiques, et l'\nanalyse mathématique.",
+  "expected": "Je veux revoir les mathématiques, et l'analyse mathématique."
+ },
+ {
+  "input": " can you check how Pip is trans\ncribing? I want to try F\nable.",
+  "expected": "Can you check how Pip is transcribing? I want to try Fable."
+ },
+ {
+  "input": " This is the first idea.\n\n second point, with a pause before it.",
+  "expected": "This is the first idea.\n\nSecond point, with a pause before it."
  }
 ]

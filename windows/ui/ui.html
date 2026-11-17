@@ -308,6 +308,9 @@ function viewPanel(s) {
     need ? h("div", { class: "row", style: "padding:12px;border-radius:14px;background:#FFF8E1;border:1px solid rgba(255,200,69,.6)" },
       h("span", { class: "grow", style: "font-weight:700;font-size:13.5px;color:var(--sun-text)" }, s.hasWhisper ? t("Download the voice model") : t("Install whisper.cpp")),
       btn(t("Set up…"), () => pip.send("setup"), "btn amber")) : null,
+    s.update ? h("div", { class: "row", style: "padding:12px;border-radius:14px;background:rgba(255,255,255,.85);border:1px solid rgba(61,214,160,.7)" },
+      h("span", { class: "grow", style: "font-weight:700;font-size:13.5px" }, t("Pip Dictée %@ is available", s.update)),
+      btn(t("Download…"), () => pip.send("open", { what: "release" }), "btn")) : null,
     h("div", { class: "shortcut" },
       h("div", { class: "row", style: "gap:6px;font-weight:700;font-size:14px;flex-wrap:wrap" }, t("Hold"), keysFor(st.trigger).map(k => h("span", { class: "key" }, k)), t("and talk")),
       h("div", { class: "soft", style: "font-size:12.5px" }, t("Add Space for hands-free · Esc cancels")),
@@ -424,12 +427,17 @@ function viewSettings(s) {
         h("div", { class: "grow" }, h("h2", { style: "font-size:22px" }, t("Everything stays on this PC")),
           h("ul", {}, h("li", {}, t("Audio is deleted right after")), h("li", {}, t("Whisper works offline")), h("li", {}, t("The log never has your words")), h("li", {}, t("Clipboard history and cloud sync skip dictations"))))),
       h("div", { class: "card" },
-        srow(t("Keep history"), t("Your last 200 dictations, only on this PC."), btn(t("Clear history"), () => pip.send("clearHistory"), "btn secondary"), sw(st.keep_history, v => set("keep_history", v), t("Keep history")))),
+        srow(t("Keep history"), t("Your last 200 dictations, only on this PC."), btn(t("Clear history"), () => pip.send("clearHistory"), "btn secondary"), sw(st.keep_history, v => set("keep_history", v), t("Keep history"))),
+        srow(t("Check for updates"), t("Once a day, asks GitHub for the latest version number. Nothing about you or your dictations is sent, and nothing is installed without you."), sw(st.check_updates !== false, v => set("check_updates", v), t("Check for updates")))),
       h("div", { class: "row", style: "justify-content:flex-end" }, h("button", { class: "link", type: "button", onclick: () => pip.send("open", { what: "dataFolder" }) }, t("Open the data folder")))];
   } else {
     main = [h("div", { class: "row", style: "gap:18px" }, pipEl("happy", false, 96), h("div", { class: "col", style: "gap:4px" }, h("h1", { style: "font-size:30px" }, "Pip Dictée"), h("span", { class: "soft" }, t("Version %@ · free and open source (MIT)", s.version || "")))),
       h("p", { class: "body", style: "text-align:left" }, t("Hold a key, talk, let go: Pip types what you said, in any app. Transcription runs on this PC with whisper.cpp and OpenAI's Whisper model.")),
-      h("div", { class: "row" }, btn(t("Source code"), () => pip.send("open", { what: "source" }), "btn secondary"), btn(t("Report a problem"), () => pip.send("open", { what: "issues" }), "btn secondary"), btn(t("Run setup again"), () => pip.send("setup"), "btn secondary"))];
+      h("div", { class: "row" }, btn(t("Source code"), () => pip.send("open", { what: "source" }), "btn secondary"), btn(t("Report a problem"), () => pip.send("open", { what: "issues" }), "btn secondary"), btn(t("Run setup again"), () => pip.send("setup"), "btn secondary")),
+      h("div", { class: "card" }, s.update
+        ? srow(t("Pip Dictée %@ is available", s.update), t("Download it from GitHub, then run the installer."), btn(t("Download…"), () => pip.send("open", { what: "release" }), "btn"))
+        : srow(t("Updates"), { checking: t("Checking…"), latest: t("You have the latest version."), failed: t("Couldn't reach GitHub. Try again later.") }[s.updateCheck] || t("Pip checks once a day and tells you when a new version is out."),
+            h("button", { class: "btn secondary", type: "button", disabled: s.updateCheck === "checking", onclick: () => pip.send("checkUpdate") }, s.updateCheck === "checking" ? t("Checking…") : t("Check now"))))];
   }
   return h("div", { id: "settings" },
     h("nav", { "aria-label": t("Pip Dictée Settings") }, TABS.map(([id, ico, name]) =>
@@ -547,7 +555,9 @@ function renderGallery(root) {
     h("div", { class: "col", style: "gap:10px" }, h("h3", {}, "Pill"), pills.map(([k, p]) => frame("", 460, 82, "pill", { pill: Object.assign({ kind: k }, p) }, true))),
     frame("Panel", 360, 700, "panel", {}, true),
     frame("Panel — needs setup", 360, 700, "panel", { hasModel: false }, true),
+    frame("Panel — update available", 360, 760, "panel", { update: "2.3.0" }, true),
     ...["general", "dictionary", "history", "privacy", "about"].map(tab => frame("Settings — " + tab, 860, 600, "settings", { tab })),
+    frame("Settings — about, update available", 860, 600, "settings", { tab: "about", update: "2.3.0" }),
     frame("Setup 1", 420, 640, "setup", { step: 0 }),
     frame("Setup 2", 420, 640, "setup", { step: 1, mic: { heard: true, levels: [.3, .7, .5, .9, .4, .6, .8, .5], name: "Microphone (Realtek Audio)" } }),
     frame("Setup 2 — quiet", 420, 640, "setup", { step: 1, mic: { quiet: true, levels: [0, 0, .02, 0, 0, 0, .01, 0], name: "Microphone (Realtek Audio)" } }),

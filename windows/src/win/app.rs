@@ -14,6 +14,7 @@ use super::{autostart, output, setup};
 use crate::cleanup::clean;
 use crate::i18n::{self, t, tf};
 use crate::store::{self, log, Dictionary, Entry, Settings, Trigger, LANGUAGES};
+use crate::updates;
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
@@ -53,6 +54,9 @@ pub enum UiEvent {
     /// Setup finished: the chosen model's id, its predicted milliseconds for 30 s of speech, and whether a speed
     /// test chose it; or why not.
     DownloadDone(Result<(&'static str, u64, bool, setup::Accel), String>),
+    /// An update check finished: whether it worked (the version found is in the settings), and whether the
+    /// "Check now" button asked for it.
+    UpdateChecked { ok: bool, manual: bool },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -157,12 +161,29 @@ pub fn run() {
         MenuEvent::set_event_handler(Some(move |e: MenuEvent| { let _ = p.lock().unwrap().send_event(UiEvent::Menu(e.id)); }));
     }
 
+    // The update check: every hour, it looks whether a day has passed since the last answer.
+    {
+        let (s, p) = (shared.clone(), Mutex::new(proxy.clone()));
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(20));
+            loop {
+                let due = {
+                    let st = s.settings.lock().unwrap();
+                    st.check_updates && chrono::Utc::now().timestamp() - st.last_update_check >= updates::CHECK_EVERY_SECS
+                };
+                if due { check_updates(&s, &p.lock().unwrap(), false); }
+                std::thread::sleep(Duration::from_secs(3600));
+            }
+        });
+    }
+
     let menu = Menu::new();
     let menu_settings = MenuItem::new(t("Settings…"), true, None);
     let menu_quit = MenuItem::new(t("Quit Pip Dictée"), true, None);
+    let menu_update = MenuItem::new("", true, None);
     let _ = menu.append_items(&[&menu_settings, &PredefinedMenuItem::separator(), &menu_quit]);
     let tray = TrayIconBuilder::new()
-        .with_menu(Box::new(menu))
+        .with_menu(Box::new(menu.clone()))
         .with_menu_on_left_click(false)   // left click opens the panel, right click this small menu
         .with_icon(tray_icon_for(Mode::Idle, !has_whisper() || !has_model()))
         .with_tooltip(tooltip(&shared.settings.lock().unwrap(), Mode::Idle))
@@ -170,13 +191,14 @@ pub fn run() {
         .expect("tray icon");
 
     let mut ui = Ui {
-        proxy, shared, whisper, tx, views: HashMap::new(), tray, menu_settings, menu_quit,
+        proxy, shared, whisper, tx, views: HashMap::new(), tray, menu, menu_update, menu_settings, menu_quit, update: None, update_check: "",
         mode: Mode::Idle, whisper_ready: false, pill: None, pill_hide_at: None, levels: VecDeque::from(vec![0.0; 12]),
         tab: "general".into(), panel_hidden_at: Instant::now() - Duration::from_secs(5),
         step: 0, mic: None, mic_started: Instant::now(), loud_ticks: 0, heard: false, quiet: false, mic_name: None, advance_at: None,
         download: json!({ "state": "idle" }), cancel: Arc::new(AtomicBool::new(false)),
     };
     log("started");
+    ui.update_found();
 
     event_loop.run(move |event, target, control_flow| {
         match event {
@@ -212,6 +234,18 @@ pub fn run() {
     });
 }
 
+/// Asks GitHub for the latest version (blocking: off the UI thread) and saves the answer.
+fn check_updates(shared: &Shared, ui: &EventLoopProxy<UiEvent>, manual: bool) {
+    let latest = updates::fetch_latest();
+    if let Some(v) = &latest {
+        let mut s = shared.settings.lock().unwrap();
+        s.last_update_check = chrono::Utc::now().timestamp();
+        s.latest_version = v.clone();
+        store::save_settings(&s);
+    }
+    let _ = ui.send_event(UiEvent::UpdateChecked { ok: latest.is_some(), manual });
+}
+
 fn tooltip(s: &Settings, m: Mode) -> String {
     let k = if s.trigger == Trigger::CtrlWin { "Ctrl + Win".to_string() } else { t("Right Ctrl") };
     match m {
@@ -232,10 +266,17 @@ struct Ui {
     tx: Sender<Event>,
     views: HashMap<View, Win>,
     tray: TrayIcon,
+    menu: Menu,
+    /// "Pip Dictée 2.3.0 is available…", in the tray menu while there's a newer version.
+    menu_update: MenuItem,
     menu_settings: MenuItem,
     menu_quit: MenuItem,
     mode: Mode,
     whisper_ready: bool,
+    /// A newer version than this one, if the update check found one.
+    update: Option<String>,
+    /// The "Check now" button's state: "", "checking", "latest" or "failed".
+    update_check: &'static str,
     pill: Option<Value>,
     pill_hide_at: Option<Instant>,
     levels: VecDeque<f32>,
@@ -308,7 +349,7 @@ impl Ui {
         let mut v = json!({
             "strings": i18n::table(), "locale": i18n::current(), "settings": s, "trigger": s.trigger,
             "mode": mode_name(self.mode), "whisperReady": self.whisper_ready, "hasWhisper": has_whisper(), "hasModel": has_model(),
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": env!("CARGO_PKG_VERSION"), "update": self.update, "updateCheck": self.update_check,
             "model": store::active_model().map(|m| m.id), "modelMs": s.model_ms,
             // large-v3-turbo on the Intel graphics: its own measured time.
             "openvinoMs": if s.accel == "openvino" && setup::openvino_installed() { s.accel_ms } else { 0 },
@@ -346,8 +387,42 @@ impl Ui {
 
     fn refresh_tray(&self) {
         let _ = self.tray.set_icon(Some(tray_icon_for(self.mode, !has_whisper() || !has_model())));
-        let _ = self.tray.set_tooltip(Some(tooltip(&self.shared.settings.lock().unwrap(), self.mode)));
+        let tip = match (&self.update, self.mode) {
+            (Some(v), Mode::Idle) => tf("Pip Dictée %@ is available", &[v.as_str()]),
+            _ => tooltip(&self.shared.settings.lock().unwrap(), self.mode),
+        };
+        let _ = self.tray.set_tooltip(Some(tip));
     }
+
+    /// Reads the version the last check found: the panel, the settings and the tray menu show it, and the pill
+    /// says it once per version, when you're not dictating.
+    fn update_found(&mut self) {
+        let (latest, on) = { let s = self.shared.settings.lock().unwrap(); (s.latest_version.clone(), s.check_updates) };
+        let newer = (on && updates::is_newer(&latest, env!("CARGO_PKG_VERSION"))).then_some(latest);
+        if newer != self.update {
+            if self.update.is_some() { let _ = self.menu.remove(&self.menu_update); }
+            if let Some(v) = &newer {
+                self.menu_update.set_text(tf("Pip Dictée %@ is available…", &[v.as_str()]));
+                let _ = self.menu.prepend(&self.menu_update);
+            }
+            self.update = newer;
+            self.refresh_tray();
+            self.push_all();
+        }
+        self.announce_update();
+    }
+    fn announce_update(&mut self) {
+        let Some(v) = self.update.clone() else { return };
+        if self.mode != Mode::Idle || self.pill.is_some() { return; }   // later: when the dictation is over
+        {
+            let mut s = self.shared.settings.lock().unwrap();
+            if s.update_announced == v { return; }
+            s.update_announced = v.clone();
+            store::save_settings(&s);
+        }
+        self.show_pill(Some(json!({ "kind": "info", "message": tf("Pip Dictée %@ is available", &[&v]) })), Some(5000));
+    }
+    fn open_release_page() { let _ = std::process::Command::new("explorer.exe").arg(updates::LATEST_RELEASE_PAGE).spawn(); }
 
     // MARK: pill
 
@@ -462,14 +537,23 @@ impl Ui {
     fn handle(&mut self, target: &EventLoopWindowTarget<UiEvent>, e: UiEvent, control_flow: &mut ControlFlow) {
         match e {
             UiEvent::Pill(state, hide) => self.show_pill(state, hide),
-            UiEvent::Mode(m) => { self.mode = m; self.refresh_tray(); self.push(View::Panel); }
+            UiEvent::Mode(m) => { self.mode = m; self.refresh_tray(); self.push(View::Panel); if m == Mode::Idle { self.announce_update(); } }
             UiEvent::HistoryChanged => { self.push(View::Panel); self.push(View::Settings); self.push(View::Setup); }
             UiEvent::WhisperReady(r) => { self.whisper_ready = r; self.push(View::Panel); }
             UiEvent::Tray(TrayIconEvent::Click { rect, button: MouseButton::Left, button_state: MouseButtonState::Up, .. }) => self.toggle_panel(rect),
             UiEvent::Tray(_) => {}
             UiEvent::Menu(id) => {
                 if id == *self.menu_quit.id() { self.quit(control_flow); }
+                else if id == *self.menu_update.id() { Self::open_release_page(); }
                 else if id == *self.menu_settings.id() { self.tab = "general".into(); self.open(target, View::Settings); }
+            }
+            UiEvent::UpdateChecked { ok, manual } => {
+                if manual {
+                    let latest = self.shared.settings.lock().unwrap().latest_version.clone();
+                    self.update_check = if !ok { "failed" } else if updates::is_newer(&latest, env!("CARGO_PKG_VERSION")) { "" } else { "latest" };
+                }
+                self.update_found();
+                self.push(View::Settings);
             }
             UiEvent::Download(v) => { self.download = v; self.push(View::Setup); self.push(View::Settings); }
             UiEvent::DownloadDone(r) => {
@@ -545,7 +629,8 @@ impl Ui {
                     "dataFolder" => store::data_dir().display().to_string(),
                     "source" => SOURCE_URL.to_string(),
                     "issues" => format!("{SOURCE_URL}/issues"),
-                    _ => return,   // only these four: the page can't make the app open anything else
+                    "release" => updates::LATEST_RELEASE_PAGE.to_string(),
+                    _ => return,   // only these: the page can't make the app open anything else
                 };
                 let _ = std::process::Command::new("explorer.exe").arg(what).spawn();
             }
@@ -563,6 +648,13 @@ impl Ui {
                 if store::active_model().map(|a| a.id) != Some(m.id) { self.start_download(setup::Goal::Switch(m)); }
             }
             "cancelDownload" => self.cancel.store(true, Relaxed),
+            // "Check now" in About: works even with the daily check off.
+            "checkUpdate" if self.update_check != "checking" => {
+                self.update_check = "checking";
+                self.push(View::Settings);
+                let (s, p) = (self.shared.clone(), self.proxy.clone());
+                std::thread::spawn(move || check_updates(&s, &p, true));
+            }
             "setupDone" => {
                 {
                     let mut s = self.shared.settings.lock().unwrap();
@@ -619,6 +711,11 @@ impl Ui {
                     i18n::set_language(v);
                     language_changed = true;
                 }
+                ("check_updates", Value::Bool(b)) => {
+                    s.check_updates = *b;
+                    // Turned back on: check soon (the hourly loop sees it's due).
+                    if *b { s.last_update_check = 0; }
+                }
                 ("open_at_login", Value::Bool(b)) => { if let Err(e) = autostart::set(*b) { log(&format!("open at sign-in: {e}")); } }
                 _ => return,
             }
@@ -627,9 +724,11 @@ impl Ui {
         if language_changed {
             self.menu_settings.set_text(t("Settings…"));
             self.menu_quit.set_text(t("Quit Pip Dictée"));
+            if let Some(v) = &self.update { self.menu_update.set_text(tf("Pip Dictée %@ is available…", &[v.as_str()])); }
             if let Some(w) = self.views.get(&View::Settings) { w.window.set_title(&t("Pip Dictée Settings")); }
             if let Some(w) = self.views.get(&View::Setup) { w.window.set_title(&t("Welcome to Pip Dictée")); }
         }
+        if key == "check_updates" { self.update_found(); }
         self.refresh_tray();
         self.push_all();
     }
@@ -733,7 +832,7 @@ impl Controller {
         std::thread::spawn(move || {
             let t0 = Instant::now();
             let dict = store::load_dictionary();
-            let prompt = dict.words.iter().take(60).cloned().collect::<Vec<_>>().join(", ");
+            let prompt = crate::cleanup::whisper_hint(&dict.words);
             let raw = whisper.transcribe(&wav, &s.lang, &prompt).unwrap_or_default();
             let _ = std::fs::remove_file(&wav);
             let text = clean(&raw, &dict, s.remove_fillers);

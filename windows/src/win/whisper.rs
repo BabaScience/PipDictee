@@ -8,6 +8,7 @@
 //! tools therefore run *inside* the models folder and only ever get plain file names, never a full path.
 
 use super::setup;
+use crate::cleanup::{find_pauses, join_segments};
 use crate::store::{active_model, load_settings, log, models_dir, ModelSpec, VAD_FILE};
 use std::os::windows::io::AsRawHandle;
 use std::os::windows::process::CommandExt;
@@ -171,22 +172,14 @@ impl Whisper {
                 self.fall_back_from_openvino();
                 return;
             }
-            // Any HTTP answer, even an error status, means it's listening.
-            match ureq::get(&format!("http://127.0.0.1:{PORT}/")).timeout(Duration::from_secs(1)).call() {
-                Ok(_) | Err(ureq::Error::Status(..)) => { ready = true; break; }
-                Err(_) => std::thread::sleep(Duration::from_millis(500)),
-            }
+            if answers() { ready = true; break; }
+            std::thread::sleep(Duration::from_millis(500));
         }
         if ready { self.set_ready(true); log("whisper-server ready"); } else { log("whisper-server didn't answer; still waiting"); }
         loop {
             std::thread::sleep(Duration::from_secs(3));
             if gone() { return; }
-            if !ready {
-                if ureq::get(&format!("http://127.0.0.1:{PORT}/")).timeout(Duration::from_secs(1)).call()
-                    .map_or_else(|e| matches!(e, ureq::Error::Status(..)), |_| true) {
-                    ready = true; self.set_ready(true); log("whisper-server ready");
-                }
-            }
+            if !ready && answers() { ready = true; self.set_ready(true); log("whisper-server ready"); }
             if let Some(why) = self.exited() {
                 self.set_ready(false);
                 *self.child.lock().unwrap() = None;
@@ -238,6 +231,11 @@ impl Whisper {
 /// The copy whisper-cli reads, if a crash left one behind.
 pub fn remove_leftovers() { let _ = std::fs::remove_file(models_dir().join(CLI_WAV)); }
 
+/// Whether the server is listening: any HTTP answer counts, even an error status.
+fn answers() -> bool {
+    matches!(ureq::get(&format!("http://127.0.0.1:{PORT}/")).timeout(Duration::from_secs(1)).call(), Ok(_) | Err(ureq::Error::Status(..)))
+}
+
 fn via_server(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
     let audio = std::fs::read(wav).ok()?;
     let boundary = format!("pip-{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default());
@@ -248,7 +246,9 @@ fn via_server(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
     body.extend(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"dictee.wav\"\r\nContent-Type: audio/wav\r\n\r\n").as_bytes());
     body.extend(&audio);
     body.extend(b"\r\n");
-    field(&mut body, "response_format", "json");
+    // verbose_json: the segments with their times, for paragraphs. split_on_word: never cut inside a word.
+    field(&mut body, "response_format", "verbose_json");
+    field(&mut body, "split_on_word", "true");
     field(&mut body, "temperature", "0.0");
     field(&mut body, "language", lang);
     if !prompt.is_empty() { field(&mut body, "prompt", prompt); }
@@ -263,7 +263,19 @@ fn via_server(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
         })))
         .ok()?;
     let j: serde_json::Value = serde_json::from_str(&resp.into_string().ok()?).ok()?;
-    j.get("text")?.as_str().map(String::from)
+    let segments: Vec<(f32, String)> = j.get("segments").and_then(|s| s.as_array()).map(|a| {
+        a.iter().filter_map(|s| Some((s.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32, s.get("text")?.as_str()?.to_string()))).collect()
+    }).unwrap_or_default();
+    if segments.is_empty() { return j.get("text")?.as_str().map(String::from); }
+    Some(join_segments(&segments, &pauses_in(wav)))
+}
+
+/// The pauses in the recording (16 kHz mono 16-bit, as audio.rs writes it), for paragraphs.
+fn pauses_in(wav: &Path) -> Vec<(f32, f32)> {
+    let Ok(mut r) = hound::WavReader::open(wav) else { return Vec::new() };
+    let rate = r.spec().sample_rate as f32;
+    let samples: Vec<f32> = r.samples::<i16>().filter_map(Result::ok).map(|s| s as f32 / 32768.0).collect();
+    find_pauses(&samples, rate, 1.2)
 }
 
 fn via_cli(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
@@ -275,7 +287,7 @@ fn via_cli(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
     let take = dir.join(CLI_WAV);
     if let Err(e) = std::fs::copy(wav, &take) { log(&format!("whisper-cli: can't copy the recording: {e}")); return None; }
     let mut cmd = Command::new(bin);
-    cmd.current_dir(&dir).args(["-m", model.file, "-f", CLI_WAV, "-l", lang, "-nt", "-np", "-t", &threads().to_string()]);
+    cmd.current_dir(&dir).args(["-m", model.file, "-f", CLI_WAV, "-l", lang, "-nt", "-np", "-sow", "-t", &threads().to_string()]);
     if !prompt.is_empty() { cmd.args(["--prompt", prompt]); }
     let out = cmd.stdin(Stdio::null()).stderr(Stdio::null()).creation_flags(CREATE_NO_WINDOW).output();
     let _ = std::fs::remove_file(&take);

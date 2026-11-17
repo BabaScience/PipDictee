@@ -31,6 +31,8 @@ final class Model: ObservableObject {
     @Published var microphone = AVCaptureDevice.authorizationStatus(for: .audio)
     @Published var hasModel = fm.fileExists(atPath: modelPath)
     @Published var hasWhisper = findTool("whisper-server") != nil || findTool("whisper-cli") != nil
+    /// A newer version of Pip Dictée, once the update check found one.
+    @Published var update: String?
 
     /// The most urgent missing piece, if any.
     var need: Need? {
@@ -56,6 +58,9 @@ final class Model: ObservableObject {
     var askAccessibility: () -> Void = {}
     var clearHistory: () -> Void = {}
     var startWhisper: () -> Void = {}
+    /// "Check now": the result, true if the check worked.
+    var checkForUpdates: (@escaping (Bool) -> Void) -> Void = { _ in }
+    var setCheckUpdates: (Bool) -> Void = { _ in }
     var quit: () -> Void = {}
 }
 

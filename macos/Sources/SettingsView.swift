@@ -371,6 +371,7 @@ struct PrivacyTab: View {
     @AppStorage("keepHistory") var keepHistory = true
     @AppStorage("externalControl") var externalControl = false
     @AppStorage("aiPolish") var aiPolish = false
+    @AppStorage("checkUpdates") var checkUpdates = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -404,6 +405,9 @@ struct PrivacyTab: View {
                 SettingRow(title: L("Local AI clean-up"), detail: L("Tidies self-corrections with Ollama, also on this Mac. A little slower.")) {
                     Switch(on: $aiPolish, label: L("Local AI clean-up"))
                 }
+                SettingRow(title: L("Check for updates"), detail: L("Once a day, asks GitHub for the latest version number. Nothing about you or your dictations is sent, and nothing is installed without you.")) {
+                    Switch(on: Binding(get: { checkUpdates }, set: { checkUpdates = $0; model.setCheckUpdates($0) }), label: L("Check for updates"))
+                }
             }
             HStack {
                 Spacer()
@@ -418,6 +422,8 @@ struct PrivacyTab: View {
 
 struct AboutTab: View {
     @ObservedObject var model: Model
+    @State private var checkResult: String?
+    @State private var checking = false
     var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -434,6 +440,26 @@ struct AboutTab: View {
                 Button(L("Source code")) { NSWorkspace.shared.open(URL(string: "https://github.com/BabaScience/PipDictee")!) }.buttonStyle(PipButtonStyle(kind: .secondary))
                 Button(L("Report a problem")) { NSWorkspace.shared.open(URL(string: "https://github.com/BabaScience/PipDictee/issues")!) }.buttonStyle(PipButtonStyle(kind: .secondary))
                 Button(L("Run setup again")) { model.openOnboarding() }.buttonStyle(PipButtonStyle(kind: .secondary))
+            }
+            Card {
+                SettingRow(title: model.update.map { L("Pip Dictée %@ is available", $0) } ?? L("Updates"),
+                           detail: model.update == nil ? (checkResult ?? L("Pip checks once a day and tells you when a new version is out.")) : L("Download it from GitHub, then replace the app."), first: true) {
+                    if model.update != nil {
+                        Button(L("Download…")) { NSWorkspace.shared.open(latestReleasePage) }.buttonStyle(PipButtonStyle(kind: .primary))
+                    } else {
+                        Button(checking ? L("Checking…") : L("Check now")) {
+                            checking = true
+                            model.checkForUpdates { ok in
+                                checking = false
+                                let latest = defaults.string(forKey: "latestVersion") ?? ""
+                                checkResult = !ok ? L("Couldn't reach GitHub. Try again later.")
+                                    : isNewer(latest, than: version) ? nil : L("You have the latest version.")
+                                if ok, isNewer(latest, than: version) { model.update = latest }
+                            }
+                        }
+                        .buttonStyle(PipButtonStyle(kind: .secondary)).disabled(checking)
+                    }
+                }
             }
         }
     }

@@ -142,6 +142,9 @@ It's a plain JSON file in your data folder, if you prefer editing by hand:
   transcribed. Transcription runs locally, through a server that only listens on `127.0.0.1`.
 - **One download, at setup.** The voice model (and whisper.cpp on Windows) comes from Hugging Face and GitHub over
   HTTPS, and is checked against a pinned SHA-256 before use. After that, Pip works offline.
+- **One small question a day.** Pip asks GitHub for the latest version number, to tell you when an update is out.
+  Nothing about you or your dictations is sent, and nothing is downloaded or installed without you. Turn it off in
+  Settings › Privacy.
 - **Your history is yours.** The last 200 dictations are kept in a folder only your user can read. Turn history
   off or clear it anytime.
 - **No secrets in logs.** The log records timings and lengths, never what you said.
@@ -157,7 +160,11 @@ The details, and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
 **Is it really free?** Yes. MIT-licensed, no account, no paid tier, no telemetry.
 
-**Does it work offline?** Yes, once the model is downloaded.
+**Does it work offline?** Yes, once the model is downloaded. (Offline, the daily update check simply fails quietly.)
+
+**How do I update?** Pip tells you when a new version is out (a message on the pill, and a card in its panel).
+Download it from the [latest release](../../releases/latest) and install it over the old one: your dictionary,
+history and settings are kept.
 
 **How fast is it?** About a second for a sentence on an Apple Silicon Mac. On Windows it depends on your PC: the
 speed test picks a model that stays quick, Intel graphics speed up the most accurate one through OpenVINO, and the

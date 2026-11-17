@@ -13,6 +13,7 @@ final class App: NSObject, NSApplicationDelegate {
     let pill = Pill()
     let settings = SettingsWindow()
     let onboarding = OnboardingWindow()
+    let updater = Updater()
     var recorder: AVAudioRecorder?
     var wavURL = URL(fileURLWithPath: NSTemporaryDirectory() + "pip-dictee.wav")
     var mode: DictationMode = .idle { didSet { model.mode = mode; updateIcon() } }
@@ -62,6 +63,8 @@ final class App: NSObject, NSApplicationDelegate {
         whisper.onReady = { [weak self] ready in self?.model.whisperReady = ready; self?.updateIcon() }
         whisper.start()
         installHotKeys()
+        updater.onChange = { [weak self] v in self?.updateFound(v) }
+        updater.start()
         // For Pip and for tests: other programs can start, stop or feed a file — only if the user turned it on.
         let dnc = DistributedNotificationCenter.default()
         dnc.addObserver(forName: .init("fr.pip.dictee.toggle"), object: nil, queue: .main) { [weak self] _ in
@@ -100,6 +103,26 @@ final class App: NSObject, NSApplicationDelegate {
         model.clearHistory = { [weak self] in self?.clearHistory() }
         model.startWhisper = { [weak self] in self?.whisper.start() }
         model.quit = { NSApp.terminate(nil) }
+        model.checkForUpdates = { [weak self] done in self?.updater.check(force: true, done: done) }
+        model.setCheckUpdates = { [weak self] on in
+            Settings.checkUpdates = on
+            if on { self?.updater.check(force: false) }
+            self?.updateFound(on ? defaults.string(forKey: "latestVersion").flatMap { isNewer($0, than: appVersion) ? $0 : nil } : nil)
+        }
+    }
+
+    /// A newer version is out (or nil): the panel and About show it, and the pill says it once per version, when
+    /// you're not dictating.
+    func updateFound(_ version: String?) {
+        model.update = version
+        updateIcon()
+        guard let v = version, defaults.string(forKey: "updateAnnounced") != v else { return }
+        guard mode == .idle else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in self?.updateFound(self?.model.update) }
+            return
+        }
+        defaults.set(v, forKey: "updateAnnounced")
+        pill.show(.info(L("Pip Dictée %@ is available", v)), hideAfter: 5)
     }
 
     /// Recordings left in the temporary folder by a crash.
@@ -294,7 +317,7 @@ final class App: NSObject, NSApplicationDelegate {
         pill.show(.thinking)
         let lang = Settings.lang
         let dict = loadDictionary()
-        let prompt = dict.words.prefix(60).joined(separator: ", ")
+        let prompt = whisperHint(dict.words)
         let t0 = Date()
         DispatchQueue.global(qos: .userInitiated).async {
             let raw = self.whisper.transcribe(url, lang: lang, prompt: prompt) ?? ""
@@ -412,7 +435,7 @@ final class App: NSObject, NSApplicationDelegate {
         case .idle: state = model.need == nil ? .ready : .needsYou
         }
         b.image = menuBarGlyph(state)
-        b.toolTip = model.need?.message ?? L("Pip Dictée — hold %@ and talk", Settings.trigger.short)
+        b.toolTip = model.need?.message ?? model.update.map { L("Pip Dictée %@ is available", $0) } ?? L("Pip Dictée — hold %@ and talk", Settings.trigger.short)
     }
 
     @objc func togglePanel() {

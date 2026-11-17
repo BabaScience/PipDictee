@@ -1,5 +1,6 @@
 // Core: files, settings, dictionary, history, text clean-up and the local Whisper server. No UI here.
 import AppKit
+import AVFoundation
 // MARK: - Paths and settings
 
 let fm = FileManager.default
@@ -80,6 +81,8 @@ struct Settings {
     /// Lets other local programs (e.g. Pip) start/stop a dictation or feed a file. Off by default: otherwise any
     /// process could use the microphone permission granted to Pip Dictée.
     static var externalControl: Bool { get { flag("externalControl", false) } set { defaults.set(newValue, forKey: "externalControl") } }
+    /// Once a day, asks GitHub for the latest version number (see Updates.swift).
+    static var checkUpdates: Bool { get { flag("checkUpdates", true) } set { defaults.set(newValue, forKey: "checkUpdates") } }
 }
 
 // MARK: - Dictionary (words, replacements, snippets) and history
@@ -174,7 +177,12 @@ let hallucinations = [
 ]
 
 func clean(_ raw: String, dict: Dictionary) -> String {
-    var t = raw.replacingOccurrences(of: "\n", with: " ")
+    // A single line break is only where Whisper cut its text, sometimes inside a word ("trans⏎cribing"): each piece
+    // already carries its own spaces, so they're joined as they are. A blank line is a paragraph (joinSegments).
+    var t = raw.replacingOccurrences(of: "\r", with: "")
+        .replacingOccurrences(of: #"\n{2,}"#, with: "\u{2029}", options: .regularExpression)
+        .replacingOccurrences(of: "\n", with: "")
+        .replacingOccurrences(of: "\u{2029}", with: "\n\n")
     // Tags such as [BLANK_AUDIO], (musique), *rires*.
     t = t.replacingOccurrences(of: #"\[[^\]]*\]|\([^)]*(musique|music|rires|laughs|applause|applaudissements|silence|inaudible)[^)]*\)|\*[^*]+\*"#, with: "", options: [.regularExpression, .caseInsensitive])
     t = t.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -195,6 +203,7 @@ func clean(_ raw: String, dict: Dictionary) -> String {
     t = t.replacingOccurrences(of: #"[ \t]+([,.!?…])"#, with: "$1", options: .regularExpression)
     t = t.replacingOccurrences(of: #",[ ]*(?=,)"#, with: "", options: .regularExpression)
     t = t.replacingOccurrences(of: #"\n[ ]+"#, with: "\n", options: .regularExpression)
+    t = t.replacingOccurrences(of: #"[ ]+\n"#, with: "\n", options: .regularExpression)
     t = t.trimmingCharacters(in: CharacterSet(charactersIn: " ,"))
     if let f = t.first, f.isLowercase { t = f.uppercased() + t.dropFirst() }
     // Each new line starts with a capital, like the first.
@@ -218,6 +227,72 @@ func clean(_ raw: String, dict: Dictionary) -> String {
         t = t.replacingOccurrences(of: #"(?<![\p{L}])"# + NSRegularExpression.escapedPattern(for: trigger) + #"(?![\p{L}])"#, with: text, options: [.regularExpression, .caseInsensitive])
     }
     return t
+}
+
+/// The dictionary words Whisper gets as a hint. Tested on real audio:
+/// - Whisper copies the hint's style: a comma list made it join sentences with commas, so each word is a sentence.
+/// - A short hint works better than a long one, and Whisper keeps only the end of a long one: the newest words
+///   (added at the end of the list) are kept, within ~300 characters, and come last.
+/// - Only real words: a letter and no digits (not "@" or "logohost5173"), no duplicates.
+func whisperHint(_ words: [String]) -> String {
+    var seen = Set<String>(), kept: [String] = [], length = 0
+    for w in words.reversed() {
+        let t = w.trimmingCharacters(in: .whitespaces)
+        guard t.rangeOfCharacter(from: .letters) != nil, t.rangeOfCharacter(from: .decimalDigits) == nil, t.count <= 40,
+              seen.insert(t.lowercased()).inserted else { continue }
+        if length + t.count + 2 > 300 { break }
+        kept.append(t); length += t.count + 2
+    }
+    return kept.isEmpty ? "" : kept.reversed().joined(separator: ". ") + "."
+}
+
+/// Silences of at least `minPause` seconds inside the recording, as (start, end) in seconds. The level that counts
+/// as silence is measured on the recording itself, so it works with a quiet mic or a noisy room. A silence that runs
+/// to the end is the end of the dictation, not a pause.
+func findPauses(_ x: [Float], rate: Double, minPause: Double = 1.2) -> [(Double, Double)] {
+    let hop = Int(rate * 0.02)
+    guard hop > 0, x.count >= hop * 10 else { return [] }
+    var rms: [Float] = []
+    rms.reserveCapacity(x.count / hop)
+    var i = 0
+    while i + hop <= x.count {
+        var s: Float = 0
+        for j in i..<(i + hop) { s += x[j] * x[j] }
+        rms.append((s / Float(hop)).squareRoot()); i += hop
+    }
+    let sorted = rms.sorted()
+    let threshold = max(sorted[sorted.count / 10] * 2.5, sorted[sorted.count * 9 / 10] * 0.1)
+    var out: [(Double, Double)] = [], start: Int?
+    for (k, v) in rms.enumerated() {
+        if v < threshold { if start == nil { start = k } }
+        else if let s = start {
+            if Double(k - s) * 0.02 >= minPause { out.append((Double(s) * 0.02, Double(k) * 0.02)) }
+            start = nil
+        }
+    }
+    return out
+}
+
+func findPauses(inWAV url: URL) -> [(Double, Double)] {
+    guard let f = try? AVAudioFile(forReading: url),
+          let buf = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: AVAudioFrameCount(f.length)),
+          (try? f.read(into: buf)) != nil, let ch = buf.floatChannelData?[0] else { return [] }
+    return findPauses(Array(UnsafeBufferPointer(start: ch, count: Int(buf.frameLength))), rate: f.processingFormat.sampleRate)
+}
+
+/// Whisper's segments joined as written (each carries its own spaces), with a new paragraph where a sentence ends
+/// at a pause. Whisper's timestamps hide pauses inside the segments around them, so the pauses come from the audio.
+func joinSegments(_ segments: [(start: Double, end: Double, text: String)], pauses: [(Double, Double)]) -> String {
+    var out = ""
+    for (i, s) in segments.enumerated() {
+        let endsSentence = out.trimmingCharacters(in: .whitespaces).last.map { ".!?…".contains($0) } ?? false
+        if i > 0, endsSentence, pauses.contains(where: { $0.0 - 0.5 <= s.start && s.start <= $0.1 + 0.5 }) {
+            out = out.trimmingCharacters(in: .whitespaces) + "\n\n" + s.text.trimmingCharacters(in: .whitespaces)
+        } else {
+            out += s.text
+        }
+    }
+    return out
 }
 
 /// Optional: a local model (Ollama) removes self-corrections and tidies the sentence, nothing else.
@@ -313,7 +388,8 @@ final class Whisper {
         }
         body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"dictee.wav\"\r\nContent-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
         body.append(audio); body.append("\r\n".data(using: .utf8)!)
-        field("response_format", "json"); field("temperature", "0.0"); field("language", lang)
+        // verbose_json: the segments with their times, for paragraphs. split_on_word: never cut inside a word.
+        field("response_format", "verbose_json"); field("split_on_word", "true"); field("temperature", "0.0"); field("language", lang)
         if !prompt.isEmpty { field("prompt", prompt) }
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         var req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/inference")!, timeoutInterval: 120)
@@ -321,14 +397,21 @@ final class Whisper {
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
         guard let (data, r) = syncRequest(req), r.statusCode == 200,
-              let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let t = j["text"] as? String else { return nil }
-        return t
+              let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let segs = j["segments"] as? [[String: Any]], !segs.isEmpty {
+            let parts = segs.compactMap { s -> (start: Double, end: Double, text: String)? in
+                guard let t = s["text"] as? String else { return nil }
+                return ((s["start"] as? Double) ?? 0, (s["end"] as? Double) ?? 0, t)
+            }
+            return joinSegments(parts, pauses: findPauses(inWAV: wav))
+        }
+        return j["text"] as? String
     }
     private func viaCLI(_ wav: URL, lang: String, prompt: String) -> String? {
         guard let bin = findTool("whisper-cli") else { return nil }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: bin)
-        p.arguments = ["-m", modelPath, "-f", wav.path, "-l", lang, "-nt", "-np", "-t", "8"] + (prompt.isEmpty ? [] : ["--prompt", prompt])
+        p.arguments = ["-m", modelPath, "-f", wav.path, "-l", lang, "-nt", "-np", "-sow", "-t", "8"] + (prompt.isEmpty ? [] : ["--prompt", prompt])
         let out = Pipe(); p.standardOutput = out; p.standardError = FileHandle.nullDevice
         guard (try? p.run()) != nil else { return nil }
         let data = out.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
