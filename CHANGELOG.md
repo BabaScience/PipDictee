@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.3.0 — 2026-11-17
 
 **Both apps**
 - Fixed: words cut in two ("trans cribing", "l' analyse"). Whisper's server could split its text inside a word, and
