@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+**Both apps**
+- Fixed: dictations much slower since 2.3.0 (on Windows, about 20 s instead of 2 s). Asking Whisper for its
+  segments, for paragraphs, also made it score every language with a second pass of the model. Pip no longer asks
+  for that.
+
 ## 2.3.0 — 2026-11-17
 
 **Both apps**

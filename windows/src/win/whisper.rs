@@ -247,8 +247,11 @@ fn via_server(wav: &Path, lang: &str, prompt: &str) -> Option<String> {
     body.extend(&audio);
     body.extend(b"\r\n");
     // verbose_json: the segments with their times, for paragraphs. split_on_word: never cut inside a word.
+    // no_language_probabilities: otherwise verbose_json runs the encoder a second time to score every language
+    // (unused here), which took dictations from about 2 s to 20 s or more on a laptop with OpenVINO.
     field(&mut body, "response_format", "verbose_json");
     field(&mut body, "split_on_word", "true");
+    field(&mut body, "no_language_probabilities", "true");
     field(&mut body, "temperature", "0.0");
     field(&mut body, "language", lang);
     if !prompt.is_empty() { field(&mut body, "prompt", prompt); }

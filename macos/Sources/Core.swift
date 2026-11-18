@@ -389,7 +389,9 @@ final class Whisper {
         body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"dictee.wav\"\r\nContent-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
         body.append(audio); body.append("\r\n".data(using: .utf8)!)
         // verbose_json: the segments with their times, for paragraphs. split_on_word: never cut inside a word.
-        field("response_format", "verbose_json"); field("split_on_word", "true"); field("temperature", "0.0"); field("language", lang)
+        // no_language_probabilities: otherwise verbose_json runs the encoder a second time to score every language
+        // (unused here). Cheap on Metal, but it took Windows dictations from about 2 s to 20 s.
+        field("response_format", "verbose_json"); field("split_on_word", "true"); field("no_language_probabilities", "true"); field("temperature", "0.0"); field("language", lang)
         if !prompt.isEmpty { field("prompt", prompt) }
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         var req = URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)/inference")!, timeoutInterval: 120)
