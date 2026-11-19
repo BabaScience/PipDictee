@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.3.1 — 2026-11-19
 
 **Both apps**
 - Fixed: dictations much slower since 2.3.0 (on Windows, about 20 s instead of 2 s). Asking Whisper for its

@@ -5,7 +5,7 @@
 ; This file is UTF-8 with a byte-order mark (Inno Setup needs it for the "é").
 
 #ifndef AppVersion
-  #define AppVersion "2.2.0"
+  #define AppVersion "2.3.1"
 #endif
 #define AppName "Pip Dictée"
 #define AppExe "PipDictee.exe"

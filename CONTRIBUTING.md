@@ -35,9 +35,9 @@ rustup target add x86_64-pc-windows-msvc && cargo check --target x86_64-pc-windo
 
 ## Releasing
 
-1. Set the new version in `windows/Cargo.toml` (then `cargo check` to update `Cargo.lock`) and in `macos/Info.plist`
-   (`CFBundleShortVersionString` and `CFBundleVersion`).
-2. Rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z — YYYY-MM-DD`: that section becomes the release notes.
+1. Write what changed under `## Unreleased` in `CHANGELOG.md` (that section becomes the release notes).
+2. Run `scripts/bump-version.sh X.Y.Z`: it sets the version in both apps (`windows/Cargo.toml`, `Cargo.lock`,
+   the installer, `macos/Info.plist` with the next build number) and dates the changelog section.
 3. Merge to `main`, then tag that commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 The **Release** workflow refuses a tag that isn't on `main` or doesn't match both versions, builds and tests both
