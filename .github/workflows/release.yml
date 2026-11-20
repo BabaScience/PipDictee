@@ -102,7 +102,7 @@ jobs:
       - name: Checksums
         run: cd dist && sha256sum PipDictee-*.zip PipDictee-Setup-*.exe > SHA256SUMS.txt && cat SHA256SUMS.txt
       - name: Build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/PipDictee-*.zip
